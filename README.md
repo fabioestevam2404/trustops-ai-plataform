@@ -44,10 +44,10 @@ DELETE /projects/{id}
 
 POST   /projects/{project_id}/assessments        cria e roda a avaliação completa (síncrono)
 GET    /projects/{project_id}/assessments        lista avaliações do projeto
-GET    /assessments/{id}                         status, quality/security/trust_score, certification_level
+GET    /assessments/{id}                         status, quality/security/ai_trust/trust_score, certification_level
 GET    /assessments/{id}/findings                findings normalizados
 GET    /assessments/{id}/reports/{tool}           relatório bruto (pytest | coverage | ruff |
-                                                   bandit | semgrep | gitleaks | trivy)
+                                                   bandit | semgrep | gitleaks | trivy | ai-trust)
 GET    /assessments/{id}/certificate              certificado emitido (automático ao concluir)
 GET    /assessments/{id}/report                   relatório estruturado (project/version/scores/
                                                    status/findings por severidade)
@@ -71,4 +71,4 @@ docs/             Arquitetura, ADRs, API, Trust Framework
 
 ## Status
 
-Sprint 6 — Certification Engine (certificados emitidos automaticamente por assessment, relatório de avaliação estruturado, risk register). Veja o backlog completo na [seção 9 da especificação](trustops-ai-platform.md#9-backlog-executivo-de-sprints).
+Sprint 7 — AI Trust Assessment (avaliação heurística de RAG/hallucination e prompt injection via `ai-eval/dataset.json` no repositório-alvo, AI Trust Score, trust_score com pesos dinâmicos). Veja o backlog completo na [seção 9 da especificação](trustops-ai-platform.md#9-backlog-executivo-de-sprints).

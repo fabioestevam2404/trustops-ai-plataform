@@ -20,6 +20,7 @@ def _assessment(certification_level: CertificationLevel | None, trust_score: int
         status=AssessmentStatus.COMPLETED,
         quality_score=90,
         security_score=80,
+        ai_trust_score=None,
         trust_score=trust_score,
         certification_level=certification_level,
         created_at=_NOW,

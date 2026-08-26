@@ -12,6 +12,7 @@ def _to_entity(model: AssessmentModel) -> Assessment:
         status=AssessmentStatus(model.status),
         quality_score=model.quality_score,
         security_score=model.security_score,
+        ai_trust_score=model.ai_trust_score,
         trust_score=model.trust_score,
         certification_level=(
             CertificationLevel(model.certification_level) if model.certification_level else None
@@ -54,6 +55,7 @@ class SqlAlchemyAssessmentRepository:
         status: AssessmentStatus | None = None,
         quality_score: int | None = None,
         security_score: int | None = None,
+        ai_trust_score: int | None = None,
         trust_score: int | None = None,
         certification_level: CertificationLevel | None = None,
     ) -> Assessment | None:
@@ -68,6 +70,8 @@ class SqlAlchemyAssessmentRepository:
             model.quality_score = quality_score
         if security_score is not None:
             model.security_score = security_score
+        if ai_trust_score is not None:
+            model.ai_trust_score = ai_trust_score
         if trust_score is not None:
             model.trust_score = trust_score
         if certification_level is not None:

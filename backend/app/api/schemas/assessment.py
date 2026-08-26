@@ -19,6 +19,7 @@ class AssessmentRead(BaseModel):
     status: AssessmentStatus
     quality_score: int | None
     security_score: int | None
+    ai_trust_score: int | None
     trust_score: int | None
     certification_level: CertificationLevel | None
     created_at: datetime

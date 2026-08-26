@@ -20,6 +20,16 @@ def test_compute_trust_score_averages_equally_weighted() -> None:
     assert compute_trust_score(quality_score=80, security_score=60) == 70
 
 
+def test_compute_trust_score_without_ai_ignores_ai_weight() -> None:
+    # No ai_trust_score passed -> same 50/50 formula as before Sprint 7 (no regression).
+    assert compute_trust_score(quality_score=80, security_score=60, ai_trust_score=None) == 70
+
+
+def test_compute_trust_score_with_ai_uses_three_way_weights() -> None:
+    assert compute_trust_score(quality_score=100, security_score=100, ai_trust_score=100) == 100
+    assert compute_trust_score(quality_score=100, security_score=100, ai_trust_score=0) == 80
+
+
 def test_classify_certification_thresholds() -> None:
     assert classify_certification(95, []) == CertificationLevel.ENTERPRISE_TRUST
     assert classify_certification(94, []) == CertificationLevel.HIGH_TRUST
@@ -43,4 +53,16 @@ def test_classify_certification_not_blocked_by_critical_execution_finding() -> N
 
 def test_classify_certification_not_blocked_by_non_critical_security_finding() -> None:
     findings = [_finding(Severity.HIGH, "security")]
+    assert classify_certification(100, findings) == CertificationLevel.ENTERPRISE_TRUST
+
+
+def test_classify_certification_blocked_by_critical_ai_trust_finding() -> None:
+    # A successful prompt injection is as serious as a critical vulnerability.
+    findings = [_finding(Severity.CRITICAL, "ai-trust")]
+    assert classify_certification(100, findings) == CertificationLevel.BLOCKED
+
+
+def test_classify_certification_not_blocked_by_high_ai_trust_finding() -> None:
+    # A hallucination (HIGH, not CRITICAL) is flagged but doesn't block.
+    findings = [_finding(Severity.HIGH, "ai-trust")]
     assert classify_certification(100, findings) == CertificationLevel.ENTERPRISE_TRUST
