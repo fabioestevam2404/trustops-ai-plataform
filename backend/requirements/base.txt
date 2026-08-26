@@ -7,3 +7,9 @@ alembic==1.14.0
 psycopg2-binary==2.9.10
 celery==5.4.0
 redis==5.2.1
+
+# Scanning tools (executed against target repositories, not just this codebase)
+pytest==8.3.4
+ruff==0.8.4
+pytest-cov==6.0.0
+pytest-json-report==1.5.0

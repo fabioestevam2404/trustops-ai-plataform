@@ -35,10 +35,25 @@ class AssessmentModel(Base):
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
     project_id: Mapped[str] = mapped_column(ForeignKey("projects.id"), nullable=False)
-    version: Mapped[str] = mapped_column(String(50), nullable=False)
+    version: Mapped[str] = mapped_column(String(80), nullable=False)
     status: Mapped[str] = mapped_column(
         String(20), nullable=False, default=AssessmentStatus.PENDING.value
     )
+    quality_score: Mapped[int | None] = mapped_column(Integer, nullable=True)
     trust_score: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
     project: Mapped["ProjectModel"] = relationship(back_populates="assessments")
+    findings: Mapped[list["FindingModel"]] = relationship(back_populates="assessment")
+
+
+class FindingModel(Base):
+    __tablename__ = "findings"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    assessment_id: Mapped[str] = mapped_column(ForeignKey("assessments.id"), nullable=False)
+    tool: Mapped[str] = mapped_column(String(50), nullable=False)
+    severity: Mapped[str] = mapped_column(String(20), nullable=False)
+    category: Mapped[str] = mapped_column(String(50), nullable=False)
+    description: Mapped[str] = mapped_column(String(2000), nullable=False)
+
+    assessment: Mapped["AssessmentModel"] = relationship(back_populates="findings")

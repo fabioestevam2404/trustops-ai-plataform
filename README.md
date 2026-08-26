@@ -20,7 +20,7 @@ docker compose up -d
 
 A API sobe em `http://localhost:8001` (porta 8000 remapeada para 8001 no host para não colidir com outros projetos locais; internamente o container continua na 8000). Docs interativas em `http://localhost:8001/docs`.
 
-Aplicar as migrations (cria as tabelas `projects` e `assessments`):
+Aplicar as migrations (cria as tabelas `projects`, `assessments` e `findings`):
 
 ```bash
 docker compose exec backend alembic upgrade head
@@ -41,6 +41,12 @@ GET    /projects
 GET    /projects/{id}
 PATCH  /projects/{id}
 DELETE /projects/{id}
+
+POST   /projects/{project_id}/assessments        cria e roda a avaliação (síncrono: pytest + coverage + Ruff)
+GET    /projects/{project_id}/assessments        lista avaliações do projeto
+GET    /assessments/{id}                         status, quality_score
+GET    /assessments/{id}/findings                findings normalizados
+GET    /assessments/{id}/reports/{tool}           relatório bruto (pytest | coverage | ruff)
 ```
 
 ## Estrutura do repositório
@@ -59,4 +65,4 @@ docs/             Arquitetura, ADRs, API, Trust Framework
 
 ## Status
 
-Sprint 1 — Core Platform (API funcional: CRUD de projetos, modelos de Project/Assessment, migrations). Veja o backlog completo na [seção 9 da especificação](trustops-ai-platform.md#9-backlog-executivo-de-sprints).
+Sprint 2 — Quality Assessment (scanners reais de pytest/coverage/Ruff, Quality Findings, Quality Score, evidências brutas persistidas no Evidence Store). Veja o backlog completo na [seção 9 da especificação](trustops-ai-platform.md#9-backlog-executivo-de-sprints).

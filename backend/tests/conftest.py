@@ -1,4 +1,6 @@
+import subprocess
 from collections.abc import Generator
+from pathlib import Path
 
 import pytest
 from fastapi.testclient import TestClient
@@ -6,6 +8,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
 
+from app.core.config import settings
 from app.infrastructure.db.models import Base
 from app.infrastructure.db.session import get_db
 from app.main import app
@@ -38,3 +41,43 @@ def client(db_session: Session) -> Generator[TestClient, None, None]:
         yield TestClient(app)
     finally:
         app.dependency_overrides.clear()
+
+
+@pytest.fixture(autouse=True)
+def _isolate_evidence_store(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(settings, "evidence_store_path", str(tmp_path / "evidence"))
+
+
+@pytest.fixture()
+def demo_repo_path(tmp_path: Path) -> Path:
+    """Minimal local git repo used as a scan target — no network needed for tests."""
+    repo = tmp_path / "demo-repo"
+    repo.mkdir()
+    (repo / "app.py").write_text(
+        "import os\n\n\ndef add(a: int, b: int) -> int:\n    return a + b\n",
+        encoding="utf-8",
+    )
+    (repo / "test_app.py").write_text(
+        "from app import add\n\n\ndef test_add() -> None:\n    assert add(1, 2) == 3\n",
+        encoding="utf-8",
+    )
+    subprocess.run(
+        ["git", "init", "--quiet", "--initial-branch=main"], cwd=repo, check=True
+    )
+    subprocess.run(["git", "add", "."], cwd=repo, check=True)
+    subprocess.run(
+        [
+            "git",
+            "-c",
+            "user.email=test@trustops.local",
+            "-c",
+            "user.name=trustops-test",
+            "commit",
+            "--quiet",
+            "-m",
+            "initial commit",
+        ],
+        cwd=repo,
+        check=True,
+    )
+    return repo
