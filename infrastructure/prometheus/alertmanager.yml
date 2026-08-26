@@ -1,0 +1,12 @@
+route:
+  receiver: placeholder
+  group_by: ["alertname"]
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 4h
+
+receivers:
+  # Placeholder only — does not notify anyone. Replace with a real receiver
+  # (slack_configs, email_configs, webhook_configs pointing at a real endpoint)
+  # and real credentials before relying on this in production.
+  - name: placeholder

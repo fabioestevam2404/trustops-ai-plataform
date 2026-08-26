@@ -7,6 +7,8 @@ alembic==1.14.0
 psycopg2-binary==2.9.10
 celery==5.4.0
 redis==5.2.1
+prometheus-client==0.21.1
+prometheus-fastapi-instrumentator==7.0.0
 
 # Scanning tools (executed against target repositories, not just this codebase)
 pytest==8.3.4

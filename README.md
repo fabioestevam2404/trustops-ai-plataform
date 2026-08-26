@@ -20,6 +20,8 @@ docker compose up -d
 
 A API sobe em `http://localhost:8001` (porta 8000 remapeada para 8001 no host para não colidir com outros projetos locais; internamente o container continua na 8000). Docs interativas em `http://localhost:8001/docs`. O dashboard sobe em `http://localhost:5173`.
 
+Observabilidade: Prometheus em `http://localhost:9090`, Alertmanager em `http://localhost:9093`, Grafana em `http://localhost:3000` (login `admin`/`admin`, dashboard "TrustOps Overview" já provisionado). Métricas da API em `http://localhost:8001/metrics`.
+
 Aplicar as migrations (cria as tabelas `projects`, `assessments`, `findings` e `certificates`):
 
 ```bash
@@ -53,6 +55,8 @@ GET    /assessments/{id}/report                   relatório estruturado (projec
                                                    status/findings por severidade)
 GET    /projects/{project_id}/certificates        histórico de certificados do projeto
 GET    /projects/{project_id}/risk-register       findings CRITICAL/HIGH do assessment mais recente
+
+GET    /metrics                                   métricas Prometheus (HTTP + negócio)
 ```
 
 ## Estrutura do repositório
@@ -64,11 +68,11 @@ backend/          API (FastAPI, Clean Architecture)
 frontend/         Dashboard (React + Vite + Tailwind + Recharts)
 trust-engine/     Motor de scoring e certificação (código real em backend/app/application)
 integrations/     Adaptadores de ferramentas (Semgrep, Trivy, Gitleaks, pytest...)
-infrastructure/   Docker, Terraform, Kubernetes
+infrastructure/   Docker, Prometheus/Grafana, Terraform (EC2 — validado, não aplicado), Kubernetes
 evidence/         Convenções do Evidence Store (relatórios brutos rastreáveis)
 docs/             Arquitetura, ADRs, API, Trust Framework
 ```
 
 ## Status
 
-Sprint 7 — AI Trust Assessment (avaliação heurística de RAG/hallucination e prompt injection via `ai-eval/dataset.json` no repositório-alvo, AI Trust Score, trust_score com pesos dinâmicos). Veja o backlog completo na [seção 9 da especificação](trustops-ai-platform.md#9-backlog-executivo-de-sprints).
+Sprint 8 — Production & Observability, última sprint do backlog do MVP. Logs estruturados, métricas Prometheus, Grafana e alerting rodando localmente (validados de ponta a ponta); Terraform para AWS EC2 escrito e validado (`terraform validate`), **não aplicado** — sem credenciais de nuvem neste ambiente. Veja o backlog completo na [seção 9 da especificação](trustops-ai-platform.md#9-backlog-executivo-de-sprints) e [ADR 0004](docs/adr/0004-observability-and-deployment.md).

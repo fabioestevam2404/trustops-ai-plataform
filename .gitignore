@@ -25,6 +25,14 @@ docker-compose.override.yml
 # Evidence Store (local dev artifacts — not versioned)
 evidence/store/
 
+# Terraform
+**/.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+!*.tfvars.example
+crash.log
+
 # IDE
 .vscode/
 .idea/

@@ -1,0 +1,28 @@
+groups:
+  - name: trustops
+    rules:
+      - alert: HighScannerErrorRate
+        expr: rate(trustops_scanner_errors_total[15m]) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Scanner {{ $labels.tool }} is failing frequently"
+          description: "trustops_scanner_errors_total for tool={{ $labels.tool }} has been elevated for 5+ minutes. Check container logs (JSON, key 'tool')."
+
+      - alert: AssessmentFailureSpike
+        expr: increase(trustops_assessments_total{status="FAILED"}[30m]) > 3
+        labels:
+          severity: critical
+        annotations:
+          summary: "Multiple assessments failed in the last 30 minutes"
+          description: "More than 3 assessments reached status=FAILED in 30m — likely a systemic issue (git clone, DB, disk) rather than an isolated scanner failure."
+
+      - alert: APIHighErrorRate
+        expr: rate(http_requests_total{status=~"5.."}[10m]) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "TrustOps API 5xx error rate is elevated"
+          description: "More than 5% of requests are returning 5xx over the last 10 minutes."

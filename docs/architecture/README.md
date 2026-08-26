@@ -9,5 +9,7 @@ Resumo:
 - **Evidence Store**: armazenamento dos relatórios brutos de cada ferramenta, indexado por `assessment_id` + `tool` — ver [ADR 0003](../adr/0003-evidence-store-traceability.md).
 - **Persistência**: PostgreSQL (dados relacionais) + Redis (cache/broker).
 - **Frontend**: React + TypeScript, consome a API via REST.
+- **Observabilidade**: logs estruturados (JSON, stdlib `logging`), métricas via `prometheus-client`/`fastapi-instrumentator` (`GET /metrics`), Prometheus + Alertmanager + Grafana como serviços locais no `docker-compose.yml`, dashboard e alertas provisionados automaticamente — ver [ADR 0004](../adr/0004-observability-and-deployment.md).
+- **Deploy**: Terraform em `infrastructure/terraform/` mirando uma instância EC2 rodando a stack via docker-compose — código validado (`terraform validate`), **não aplicado** nesta sessão (sem credenciais de nuvem). Ver [ADR 0004](../adr/0004-observability-and-deployment.md) e o README da pasta.
 
 Decisões arquiteturais registradas como ADRs ficam em [`../adr/`](../adr/).

@@ -1,3 +1,5 @@
+import logging
+import time
 import uuid
 from collections.abc import Callable
 from pathlib import Path
@@ -8,6 +10,12 @@ from app.application.certificate_service import CertificateService
 from app.application.quality_score import compute_quality_score
 from app.application.security_score import compute_security_score
 from app.application.trust_engine import classify_certification, compute_trust_score
+from app.core.metrics import (
+    ASSESSMENT_DURATION,
+    ASSESSMENTS_TOTAL,
+    SCANNER_DURATION,
+    SCANNER_ERRORS_TOTAL,
+)
 from app.domain.assessment import (
     Assessment,
     AssessmentNotFoundError,
@@ -32,6 +40,8 @@ from app.infrastructure.scanners.semgrep_runner import SemgrepResult
 from app.infrastructure.scanners.semgrep_runner import run as run_semgrep
 from app.infrastructure.scanners.trivy_runner import TrivyResult
 from app.infrastructure.scanners.trivy_runner import run as run_trivy
+
+logger = logging.getLogger(__name__)
 
 _COVERAGE_WARNING_THRESHOLD = 70.0
 _HALLUCINATION_THRESHOLD = 0.15
@@ -70,10 +80,18 @@ def _run_tool(
     build_findings: Callable[[str, T], list[Finding]],
 ) -> tuple[list[Finding], T | None]:
     """Runs one scanner in isolation: a failure here never aborts the whole assessment."""
+    started_at = time.monotonic()
     try:
         result = scan(repo_path)
     except Exception as exc:  # noqa: BLE001 - isolate this tool's failure from the others
+        SCANNER_ERRORS_TOTAL.labels(tool=tool).inc()
+        logger.warning(
+            "scanner failed",
+            extra={"assessment_id": assessment_id, "tool": tool, "error": str(exc)},
+        )
         return [_tool_error_finding(assessment_id, tool, exc)], None
+    finally:
+        SCANNER_DURATION.labels(tool=tool).observe(time.monotonic() - started_at)
     evidence_store.save(assessment_id, tool, result.raw_report)
     return build_findings(assessment_id, result), result
 
@@ -267,6 +285,15 @@ class AssessmentService:
 
         assessment = self._assessments.create(project_id, version or "default")
         all_findings: list[Finding] = []
+        run_started_at = time.monotonic()
+        logger.info(
+            "assessment started",
+            extra={
+                "assessment_id": assessment.id,
+                "project_id": project_id,
+                "repository_url": project.repository_url,
+            },
+        )
 
         try:
             with clone_repository(project.repository_url, version) as cloned:
@@ -279,6 +306,7 @@ class AssessmentService:
                 # pytest + coverage: special-cased, needs raw numbers for the quality score
                 # (not just findings) and writes two evidence files from one run.
                 coverage_percent, pytest_passed, pytest_total = 0.0, 0, 0
+                pytest_started_at = time.monotonic()
                 try:
                     pytest_result = run_pytest(repo_path)
                     evidence_store.save(assessment.id, "pytest", pytest_result.raw_report)
@@ -288,7 +316,20 @@ class AssessmentService:
                     pytest_passed = pytest_result.passed
                     pytest_total = pytest_result.total
                 except Exception as exc:  # noqa: BLE001 - isolate from the other tools
+                    SCANNER_ERRORS_TOTAL.labels(tool="pytest").inc()
+                    logger.warning(
+                        "scanner failed",
+                        extra={
+                            "assessment_id": assessment.id,
+                            "tool": "pytest",
+                            "error": str(exc),
+                        },
+                    )
                     all_findings.append(_tool_error_finding(assessment.id, "pytest", exc))
+                finally:
+                    SCANNER_DURATION.labels(tool="pytest").observe(
+                        time.monotonic() - pytest_started_at
+                    )
 
                 ruff_findings, ruff_result = _run_tool(
                     assessment.id, "ruff", repo_path, run_ruff, _ruff_findings
@@ -325,6 +366,7 @@ class AssessmentService:
                 # AI trust: only applicable if the target repo ships ai-eval/dataset.json —
                 # ai_trust_score stays None otherwise (excluded from trust_score weighting).
                 ai_trust_score: int | None = None
+                ai_trust_started_at = time.monotonic()
                 try:
                     ai_result = run_ai_trust(repo_path)
                     if ai_result.applicable:
@@ -333,7 +375,20 @@ class AssessmentService:
                         all_findings += ai_findings
                         ai_trust_score = compute_ai_trust_score(ai_findings)
                 except Exception as exc:  # noqa: BLE001 - isolate from the other tools
+                    SCANNER_ERRORS_TOTAL.labels(tool="ai-trust").inc()
+                    logger.warning(
+                        "scanner failed",
+                        extra={
+                            "assessment_id": assessment.id,
+                            "tool": "ai-trust",
+                            "error": str(exc),
+                        },
+                    )
                     all_findings.append(_tool_error_finding(assessment.id, "ai-trust", exc))
+                finally:
+                    SCANNER_DURATION.labels(tool="ai-trust").observe(
+                        time.monotonic() - ai_trust_started_at
+                    )
 
                 trust_score = compute_trust_score(quality_score, security_score, ai_trust_score)
                 certification_level = classify_certification(trust_score, all_findings)
@@ -343,6 +398,16 @@ class AssessmentService:
             self._findings.bulk_create(all_findings)
             updated = self._assessments.update(assessment.id, status=AssessmentStatus.FAILED)
             assert updated is not None
+            ASSESSMENTS_TOTAL.labels(status="FAILED", certification_level="none").inc()
+            ASSESSMENT_DURATION.observe(time.monotonic() - run_started_at)
+            logger.error(
+                "assessment failed",
+                extra={
+                    "assessment_id": assessment.id,
+                    "project_id": project_id,
+                    "error": str(exc),
+                },
+            )
             return updated
 
         self._findings.bulk_create(all_findings)
@@ -357,6 +422,22 @@ class AssessmentService:
         )
         assert updated is not None
         self._certificates.issue(updated.id, project_id, updated.version, certification_level)
+        ASSESSMENTS_TOTAL.labels(
+            status="COMPLETED", certification_level=certification_level.value
+        ).inc()
+        ASSESSMENT_DURATION.observe(time.monotonic() - run_started_at)
+        logger.info(
+            "assessment completed",
+            extra={
+                "assessment_id": updated.id,
+                "project_id": project_id,
+                "quality_score": quality_score,
+                "security_score": security_score,
+                "ai_trust_score": ai_trust_score,
+                "trust_score": trust_score,
+                "certification_level": certification_level.value,
+            },
+        )
         return updated
 
     def get(self, assessment_id: str) -> Assessment:

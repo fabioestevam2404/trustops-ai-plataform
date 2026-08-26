@@ -1,8 +1,12 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from prometheus_fastapi_instrumentator import Instrumentator
 
 from app.api.routers import assessments, health, projects
 from app.core.config import settings
+from app.core.logging import configure_logging
+
+configure_logging()
 
 app = FastAPI(title="TrustOps AI Platform API")
 app.add_middleware(
@@ -14,6 +18,8 @@ app.add_middleware(
 app.include_router(health.router)
 app.include_router(projects.router)
 app.include_router(assessments.router)
+
+Instrumentator().instrument(app).expose(app)
 
 
 @app.get("/")
