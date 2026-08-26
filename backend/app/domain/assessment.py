@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from datetime import datetime
 from enum import Enum
 from typing import Protocol
 
@@ -28,6 +29,7 @@ class Assessment:
     security_score: int | None
     trust_score: int | None
     certification_level: CertificationLevel | None
+    created_at: datetime
 
 
 class AssessmentNotFoundError(Exception):

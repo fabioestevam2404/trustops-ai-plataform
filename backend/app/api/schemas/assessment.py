@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from pydantic import BaseModel, ConfigDict
 
 from app.domain.assessment import AssessmentStatus, CertificationLevel
@@ -19,6 +21,7 @@ class AssessmentRead(BaseModel):
     security_score: int | None
     trust_score: int | None
     certification_level: CertificationLevel | None
+    created_at: datetime
 
 
 class FindingRead(BaseModel):

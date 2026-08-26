@@ -18,7 +18,7 @@ cp .env.example .env
 docker compose up -d
 ```
 
-A API sobe em `http://localhost:8001` (porta 8000 remapeada para 8001 no host para não colidir com outros projetos locais; internamente o container continua na 8000). Docs interativas em `http://localhost:8001/docs`.
+A API sobe em `http://localhost:8001` (porta 8000 remapeada para 8001 no host para não colidir com outros projetos locais; internamente o container continua na 8000). Docs interativas em `http://localhost:8001/docs`. O dashboard sobe em `http://localhost:5173`.
 
 Aplicar as migrations (cria as tabelas `projects`, `assessments` e `findings`):
 
@@ -56,7 +56,7 @@ Monorepo — ver [seção 8 da especificação](trustops-ai-platform.md#8-estrut
 
 ```
 backend/          API (FastAPI, Clean Architecture)
-frontend/         Dashboard (React) — Sprint 5
+frontend/         Dashboard (React + Vite + Tailwind + Recharts)
 trust-engine/     Motor de scoring e certificação (código real em backend/app/application)
 integrations/     Adaptadores de ferramentas (Semgrep, Trivy, Gitleaks, pytest...)
 infrastructure/   Docker, Terraform, Kubernetes
@@ -66,4 +66,4 @@ docs/             Arquitetura, ADRs, API, Trust Framework
 
 ## Status
 
-Sprint 4 — Trust Engine (trust_score consolidado, regra de bloqueio por vulnerabilidade crítica, níveis de certificação FOUNDATION/TRUSTED/HIGH_TRUST/ENTERPRISE_TRUST/BLOCKED). Veja o backlog completo na [seção 9 da especificação](trustops-ai-platform.md#9-backlog-executivo-de-sprints).
+Sprint 5 — Dashboard MVP (frontend React: lista de projetos, histórico com gráfico de Trust Score, findings/riscos críticos por assessment). Veja o backlog completo na [seção 9 da especificação](trustops-ai-platform.md#9-backlog-executivo-de-sprints).

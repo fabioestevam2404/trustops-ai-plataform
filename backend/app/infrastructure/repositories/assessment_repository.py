@@ -16,6 +16,7 @@ def _to_entity(model: AssessmentModel) -> Assessment:
         certification_level=(
             CertificationLevel(model.certification_level) if model.certification_level else None
         ),
+        created_at=model.created_at,
     )
 
 
@@ -40,6 +41,7 @@ class SqlAlchemyAssessmentRepository:
         models = (
             self._db.query(AssessmentModel)
             .filter(AssessmentModel.project_id == project_id)
+            .order_by(AssessmentModel.created_at.asc())
             .all()
         )
         return [_to_entity(model) for model in models]

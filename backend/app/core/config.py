@@ -8,6 +8,7 @@ class Settings(BaseSettings):
     database_url: str = "postgresql+psycopg2://trustops:trustops@postgres:5432/trustops"
     redis_url: str = "redis://redis:6379/0"
     evidence_store_path: str = "/app/evidence/store"
+    cors_origins: list[str] = ["http://localhost:5173"]
 
 
 settings = Settings()
