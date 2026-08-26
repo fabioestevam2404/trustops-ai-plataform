@@ -61,6 +61,17 @@ def demo_repo_path(tmp_path: Path) -> Path:
         "from app import add\n\n\ndef test_add() -> None:\n    assert add(1, 2) == 3\n",
         encoding="utf-8",
     )
+    # Synthetic, obviously-fake secrets/patterns to exercise the security scanners
+    # (Bandit, Semgrep, Gitleaks, Trivy) — never real credentials.
+    (repo / "insecure.py").write_text(
+        "import subprocess\n\n"
+        'AWS_ACCESS_KEY_ID = "AKIAABCDEFGHIJKLMNOP"\n\n\n'
+        "def run(cmd: str) -> None:\n"
+        "    subprocess.run(cmd, shell=True)\n\n\n"
+        "def danger(expr: str):\n"
+        "    return eval(expr)\n",
+        encoding="utf-8",
+    )
     subprocess.run(
         ["git", "init", "--quiet", "--initial-branch=main"], cwd=repo, check=True
     )

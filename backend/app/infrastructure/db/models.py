@@ -40,6 +40,7 @@ class AssessmentModel(Base):
         String(20), nullable=False, default=AssessmentStatus.PENDING.value
     )
     quality_score: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    security_score: Mapped[int | None] = mapped_column(Integer, nullable=True)
     trust_score: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
     project: Mapped["ProjectModel"] = relationship(back_populates="assessments")

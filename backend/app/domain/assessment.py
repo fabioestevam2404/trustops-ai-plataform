@@ -17,6 +17,7 @@ class Assessment:
     version: str
     status: AssessmentStatus
     quality_score: int | None
+    security_score: int | None
     trust_score: int | None
 
 
@@ -40,4 +41,5 @@ class AssessmentRepository(Protocol):
         version: str | None = None,
         status: AssessmentStatus | None = None,
         quality_score: int | None = None,
+        security_score: int | None = None,
     ) -> Assessment | None: ...

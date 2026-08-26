@@ -42,11 +42,12 @@ GET    /projects/{id}
 PATCH  /projects/{id}
 DELETE /projects/{id}
 
-POST   /projects/{project_id}/assessments        cria e roda a avaliação (síncrono: pytest + coverage + Ruff)
+POST   /projects/{project_id}/assessments        cria e roda a avaliação completa (síncrono)
 GET    /projects/{project_id}/assessments        lista avaliações do projeto
-GET    /assessments/{id}                         status, quality_score
+GET    /assessments/{id}                         status, quality_score, security_score
 GET    /assessments/{id}/findings                findings normalizados
-GET    /assessments/{id}/reports/{tool}           relatório bruto (pytest | coverage | ruff)
+GET    /assessments/{id}/reports/{tool}           relatório bruto (pytest | coverage | ruff |
+                                                   bandit | semgrep | gitleaks | trivy)
 ```
 
 ## Estrutura do repositório
@@ -65,4 +66,4 @@ docs/             Arquitetura, ADRs, API, Trust Framework
 
 ## Status
 
-Sprint 2 — Quality Assessment (scanners reais de pytest/coverage/Ruff, Quality Findings, Quality Score, evidências brutas persistidas no Evidence Store). Veja o backlog completo na [seção 9 da especificação](trustops-ai-platform.md#9-backlog-executivo-de-sprints).
+Sprint 3 — Security Assessment (scanners reais de Bandit/Semgrep/Gitleaks/Trivy, Security Score, cada ferramenta isolada por falha). Veja o backlog completo na [seção 9 da especificação](trustops-ai-platform.md#9-backlog-executivo-de-sprints).

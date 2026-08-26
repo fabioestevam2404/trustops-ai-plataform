@@ -11,6 +11,7 @@ def _to_entity(model: AssessmentModel) -> Assessment:
         version=model.version,
         status=AssessmentStatus(model.status),
         quality_score=model.quality_score,
+        security_score=model.security_score,
         trust_score=model.trust_score,
     )
 
@@ -47,6 +48,7 @@ class SqlAlchemyAssessmentRepository:
         version: str | None = None,
         status: AssessmentStatus | None = None,
         quality_score: int | None = None,
+        security_score: int | None = None,
     ) -> Assessment | None:
         model = self._db.get(AssessmentModel, assessment_id)
         if model is None:
@@ -57,6 +59,8 @@ class SqlAlchemyAssessmentRepository:
             model.status = status.value
         if quality_score is not None:
             model.quality_score = quality_score
+        if security_score is not None:
+            model.security_score = security_score
         self._db.commit()
         self._db.refresh(model)
         return _to_entity(model)

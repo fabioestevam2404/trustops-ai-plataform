@@ -1,0 +1,39 @@
+rules:
+  - id: hardcoded-secret
+    patterns:
+      - pattern-regex: '(?i)(password|secret|api_key|token)\s*=\s*["''][^"'']{8,}["'']'
+    message: Possible hardcoded secret or credential.
+    languages: [python]
+    severity: ERROR
+
+  - id: eval-usage
+    pattern: eval(...)
+    message: Use of eval() can execute arbitrary code — security risk.
+    languages: [python]
+    severity: ERROR
+
+  - id: exec-usage
+    pattern: exec(...)
+    message: Use of exec() can execute arbitrary code — security risk.
+    languages: [python]
+    severity: ERROR
+
+  - id: subprocess-shell-true
+    pattern: subprocess.$FUNC(..., shell=True, ...)
+    message: subprocess with shell=True risks command injection.
+    languages: [python]
+    severity: ERROR
+
+  - id: yaml-unsafe-load
+    pattern: yaml.load(...)
+    message: yaml.load() without SafeLoader can execute arbitrary code.
+    languages: [python]
+    severity: WARNING
+
+  - id: weak-hash
+    pattern-either:
+      - pattern: hashlib.md5(...)
+      - pattern: hashlib.sha1(...)
+    message: MD5/SHA1 are weak hashes for security-sensitive use.
+    languages: [python]
+    severity: WARNING

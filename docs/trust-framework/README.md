@@ -24,3 +24,13 @@ Implementação do motor: `trust-engine/` (Sprint 4).
 Primeiro sub-score real, calculado em `backend/app/application/quality_score.py`: `0.6 × cobertura + 0.4 × taxa de sucesso dos testes − penalidade Ruff (cap 20)`, resultado limitado a [0, 100]. É um score de domínio (qualidade), não o `trust_score` consolidado — este último só existe a partir do Trust Engine (Sprint 4), que combinará Quality Score, Security Score e demais dimensões com pesos.
 
 **Limitação conhecida do MVP**: o scanner de qualidade (`integrations/pytest`, `integrations/ruff`) roda pytest/Ruff usando o ambiente Python do próprio backend, sem instalar as dependências do repositório-alvo. Funciona plenamente para repositórios sem dependências externas de teste (o alvo natural de dogfooding é o próprio `backend/` desta plataforma); repositórios-alvo com dependências próprias geram falhas de import capturadas honestamente como findings, não um crash silencioso. Isolamento de dependências por assessment (venv dedicado) fica para uma sprint futura.
+
+## Security Score (implementado na Sprint 3)
+
+Segundo sub-score de domínio, calculado em `backend/app/application/security_score.py`: parte de 100 e subtrai uma penalidade por severidade de cada finding de segurança (`CRITICAL` -25, `HIGH` -10, `MEDIUM` -3, `LOW` -0.5), limitado a [0, 100]. Mesmo status do Quality Score: não é o `trust_score` consolidado (Sprint 4), e os pesos não são calibrados empiricamente.
+
+Alimentado por quatro ferramentas (`integrations/bandit`, `integrations/semgrep`, `integrations/gitleaks`, `integrations/trivy`), cada uma rodando isolada — a falha de uma não invalida o assessment inteiro, vira um `Finding` de categoria `execution` visível nos resultados.
+
+**Limitações conhecidas do MVP**:
+- **Trivy roda sem o scanner `vuln`** (CVEs de dependências / SCA) — só `secret` e `misconfig`. Rodar `vuln` exigiria baixar e manter um banco de vulnerabilidades (dependência de rede em tempo de execução, ou imagem Docker maior se embutido no build). SCA de dependências fica para uma sprint futura.
+- **Semgrep usa um ruleset local mínimo** (`backend/app/infrastructure/scanners/semgrep_rules.yml`), não o registro completo (`--config=auto`), para manter os scans herméticos (sem rede) e os testes determinísticos.
