@@ -20,7 +20,7 @@ docker compose up -d
 
 A API sobe em `http://localhost:8001` (porta 8000 remapeada para 8001 no host para não colidir com outros projetos locais; internamente o container continua na 8000). Docs interativas em `http://localhost:8001/docs`. O dashboard sobe em `http://localhost:5173`.
 
-Aplicar as migrations (cria as tabelas `projects`, `assessments` e `findings`):
+Aplicar as migrations (cria as tabelas `projects`, `assessments`, `findings` e `certificates`):
 
 ```bash
 docker compose exec backend alembic upgrade head
@@ -48,6 +48,11 @@ GET    /assessments/{id}                         status, quality/security/trust_
 GET    /assessments/{id}/findings                findings normalizados
 GET    /assessments/{id}/reports/{tool}           relatório bruto (pytest | coverage | ruff |
                                                    bandit | semgrep | gitleaks | trivy)
+GET    /assessments/{id}/certificate              certificado emitido (automático ao concluir)
+GET    /assessments/{id}/report                   relatório estruturado (project/version/scores/
+                                                   status/findings por severidade)
+GET    /projects/{project_id}/certificates        histórico de certificados do projeto
+GET    /projects/{project_id}/risk-register       findings CRITICAL/HIGH do assessment mais recente
 ```
 
 ## Estrutura do repositório
@@ -66,4 +71,4 @@ docs/             Arquitetura, ADRs, API, Trust Framework
 
 ## Status
 
-Sprint 5 — Dashboard MVP (frontend React: lista de projetos, histórico com gráfico de Trust Score, findings/riscos críticos por assessment). Veja o backlog completo na [seção 9 da especificação](trustops-ai-platform.md#9-backlog-executivo-de-sprints).
+Sprint 6 — Certification Engine (certificados emitidos automaticamente por assessment, relatório de avaliação estruturado, risk register). Veja o backlog completo na [seção 9 da especificação](trustops-ai-platform.md#9-backlog-executivo-de-sprints).

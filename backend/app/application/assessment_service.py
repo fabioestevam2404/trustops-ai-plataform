@@ -3,6 +3,7 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import Protocol, TypeVar
 
+from app.application.certificate_service import CertificateService
 from app.application.quality_score import compute_quality_score
 from app.application.security_score import compute_security_score
 from app.application.trust_engine import classify_certification, compute_trust_score
@@ -198,10 +199,12 @@ class AssessmentService:
         assessment_repository: AssessmentRepository,
         finding_repository: FindingRepository,
         project_repository: ProjectRepository,
+        certificate_service: CertificateService,
     ) -> None:
         self._assessments = assessment_repository
         self._findings = finding_repository
         self._projects = project_repository
+        self._certificates = certificate_service
 
     def run(self, project_id: str, version: str | None) -> Assessment:
         project = self._projects.get(project_id)
@@ -284,6 +287,7 @@ class AssessmentService:
             certification_level=certification_level,
         )
         assert updated is not None
+        self._certificates.issue(updated.id, project_id, updated.version, certification_level)
         return updated
 
     def get(self, assessment_id: str) -> Assessment:

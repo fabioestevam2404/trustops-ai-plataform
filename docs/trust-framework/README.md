@@ -49,4 +49,22 @@ A classificação segue exatamente a pseudológica da [seção 6](../../trustops
 
 Validado manualmente: um repositório com um segredo exposto obteve `trust_score: 25` mas `certification_level: BLOCKED` (a regra de bloqueio prevaleceu sobre o score); um repositório limpo obteve `trust_score: 100` e `certification_level: ENTERPRISE_TRUST`.
 
-**Fora de escopo desta sprint**: a entidade `Certificate` completa (emissão formal, histórico, `issued_at`) — `certification_level` vive como campo do próprio `Assessment` por enquanto; a emissão de certificado de fato é a Sprint 6.
+## Certification Engine (implementado na Sprint 6)
+
+A entidade `Certificate` (id, assessment_id, project_id, version, certification_level, status, issued_at) é emitida **automaticamente** dentro de `AssessmentService.run()`, logo após o `certification_level` ser calculado — para todo assessment que chega a `COMPLETED`, inclusive os `BLOCKED` (um certificado `BLOCKED` também é um registro válido: "esta versão foi avaliada e reprovou"). Código em `backend/app/application/certificate_service.py`.
+
+Novos endpoints:
+
+```text
+GET /assessments/{id}/certificate      certificado emitido para este assessment
+GET /projects/{id}/certificates        histórico de certificados do projeto
+GET /assessments/{id}/report           relatório estruturado (backend/app/application/report.py):
+                                        project, version, trust_score, certification_level,
+                                        status (APPROVED/BLOCKED/PENDING), findings por severidade
+GET /projects/{id}/risk-register       findings CRITICAL/HIGH do assessment COMPLETED mais
+                                        recente do projeto (backend/app/application/risk_register.py)
+```
+
+**Rastreabilidade do certificado até a evidência bruta**: o certificado referencia `assessment_id`; como `GET /assessments/{id}/reports/{tool}` (Sprint 2/3, ADR 0003) já dá acesso a todo relatório bruto daquele assessment, a cadeia completa (certificado → findings → relatório bruto da ferramenta) já existe sem duplicar armazenamento.
+
+**Fora de escopo desta sprint**: revogação de certificado (`CertificateStatus` só tem `ISSUED`); exportação em PDF/HTML do relatório (fica JSON estruturado); Risk Register histórico entre múltiplos assessments (só reflete o mais recente, para não duplicar o mesmo risco a cada nova avaliação).

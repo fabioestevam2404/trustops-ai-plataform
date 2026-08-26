@@ -5,6 +5,7 @@ from sqlalchemy import DateTime, ForeignKey, Integer, String
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 from app.domain.assessment import AssessmentStatus
+from app.domain.certificate import CertificateStatus
 
 
 class Base(DeclarativeBase):
@@ -60,3 +61,17 @@ class FindingModel(Base):
     description: Mapped[str] = mapped_column(String(2000), nullable=False)
 
     assessment: Mapped["AssessmentModel"] = relationship(back_populates="findings")
+
+
+class CertificateModel(Base):
+    __tablename__ = "certificates"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    assessment_id: Mapped[str] = mapped_column(ForeignKey("assessments.id"), nullable=False)
+    project_id: Mapped[str] = mapped_column(ForeignKey("projects.id"), nullable=False)
+    version: Mapped[str] = mapped_column(String(80), nullable=False)
+    certification_level: Mapped[str] = mapped_column(String(20), nullable=False)
+    status: Mapped[str] = mapped_column(
+        String(20), nullable=False, default=CertificateStatus.ISSUED.value
+    )
+    issued_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
