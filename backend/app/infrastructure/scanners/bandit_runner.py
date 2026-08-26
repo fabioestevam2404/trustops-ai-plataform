@@ -19,10 +19,17 @@ class BanditResult:
     issues: list[BanditIssue]
 
 
+# Test suites legitimately use assert (B101) as pytest's own idiom, not a
+# security risk — scanning them as production code drowns real findings in
+# noise (a large test suite alone can zero out the security score). Glob
+# patterns cover both root-level and nested test directories.
+_TEST_DIR_EXCLUDES = "tests/*,test/*,*/tests/*,*/test/*"
+
+
 def run(repo_path: Path) -> BanditResult:
     # Bandit exits non-zero when issues are found — expected outcome, not caught here.
     result = subprocess.run(
-        ["bandit", "-r", ".", "-f", "json", "-q"],
+        ["bandit", "-r", ".", "-x", _TEST_DIR_EXCLUDES, "-f", "json", "-q"],
         cwd=repo_path,
         capture_output=True,
         timeout=30,

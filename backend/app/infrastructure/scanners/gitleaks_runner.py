@@ -19,23 +19,33 @@ class GitleaksResult:
     secrets: list[GitleaksSecret]
 
 
+_BASELINE_FILENAME = ".gitleaks-baseline.json"
+
+
 def run(repo_path: Path) -> GitleaksResult:
     with TemporaryDirectory(prefix="trustops-gitleaks-out-") as tmp:
         report_path = Path(tmp) / "report.json"
 
+        command = [
+            "gitleaks",
+            "detect",
+            "--source",
+            ".",
+            "--no-git",
+            "--report-format",
+            "json",
+            "--report-path",
+            str(report_path),
+        ]
+        # Honor a baseline the target repo already maintains (gitleaks' own
+        # convention for previously-triaged/accepted findings) — otherwise
+        # gitleaks re-flags matches recorded inside the baseline file itself.
+        if (repo_path / _BASELINE_FILENAME).exists():
+            command += ["--baseline-path", _BASELINE_FILENAME]
+
         # Gitleaks exits non-zero when secrets are found — expected, not caught here.
         subprocess.run(
-            [
-                "gitleaks",
-                "detect",
-                "--source",
-                ".",
-                "--no-git",
-                "--report-format",
-                "json",
-                "--report-path",
-                str(report_path),
-            ],
+            command,
             cwd=repo_path,
             capture_output=True,
             timeout=30,
