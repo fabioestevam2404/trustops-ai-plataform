@@ -12,6 +12,22 @@ jobs:
     defaults:
       run:
         working-directory: backend
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: trustops
+          POSTGRES_PASSWORD: trustops
+          POSTGRES_DB: trustops
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U trustops"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DATABASE_URL: postgresql+psycopg2://trustops:trustops@localhost:5432/trustops
     steps:
       - uses: actions/checkout@v4
 
@@ -27,6 +43,9 @@ jobs:
 
       - name: Type check (mypy)
         run: mypy app
+
+      - name: Alembic migration (validates against Postgres)
+        run: alembic upgrade head
 
       - name: Tests (pytest)
         run: pytest

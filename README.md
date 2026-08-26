@@ -18,12 +18,29 @@ cp .env.example .env
 docker compose up -d
 ```
 
-A API sobe em `http://localhost:8001` (porta 8000 remapeada para 8001 no host para não colidir com outros projetos locais; internamente o container continua na 8000).
+A API sobe em `http://localhost:8001` (porta 8000 remapeada para 8001 no host para não colidir com outros projetos locais; internamente o container continua na 8000). Docs interativas em `http://localhost:8001/docs`.
+
+Aplicar as migrations (cria as tabelas `projects` e `assessments`):
+
+```bash
+docker compose exec backend alembic upgrade head
+```
 
 Rodar os testes do backend:
 
 ```bash
 docker compose exec backend pytest
+```
+
+### Endpoints disponíveis
+
+```
+GET    /health
+POST   /projects
+GET    /projects
+GET    /projects/{id}
+PATCH  /projects/{id}
+DELETE /projects/{id}
 ```
 
 ## Estrutura do repositório
@@ -42,4 +59,4 @@ docs/             Arquitetura, ADRs, API, Trust Framework
 
 ## Status
 
-Sprint 0 — Foundation & Architecture. Veja o backlog completo na [seção 9 da especificação](trustops-ai-platform.md#9-backlog-executivo-de-sprints).
+Sprint 1 — Core Platform (API funcional: CRUD de projetos, modelos de Project/Assessment, migrations). Veja o backlog completo na [seção 9 da especificação](trustops-ai-platform.md#9-backlog-executivo-de-sprints).
