@@ -5,13 +5,14 @@ from typing import Protocol, TypeVar
 
 from app.application.quality_score import compute_quality_score
 from app.application.security_score import compute_security_score
+from app.application.trust_engine import classify_certification, compute_trust_score
 from app.domain.assessment import (
     Assessment,
     AssessmentNotFoundError,
     AssessmentRepository,
     AssessmentStatus,
 )
-from app.domain.finding import Finding, FindingRepository, Severity
+from app.domain.finding import SECURITY_CATEGORIES, Finding, FindingRepository, Severity
 from app.domain.project import ProjectNotFoundError, ProjectRepository
 from app.infrastructure import evidence_store
 from app.infrastructure.scanners.bandit_runner import BanditResult
@@ -29,7 +30,6 @@ from app.infrastructure.scanners.trivy_runner import TrivyResult
 from app.infrastructure.scanners.trivy_runner import run as run_trivy
 
 _COVERAGE_WARNING_THRESHOLD = 70.0
-_SECURITY_CATEGORIES = {"security", "secrets", "misconfig"}
 _SEVERITY_BY_VALUE = {severity.value: severity for severity in Severity}
 _SEMGREP_SEVERITY_MAP = {"ERROR": Severity.HIGH, "WARNING": Severity.MEDIUM, "INFO": Severity.LOW}
 
@@ -261,9 +261,11 @@ class AssessmentService:
                 all_findings += trivy_findings
 
                 security_findings = [
-                    finding for finding in all_findings if finding.category in _SECURITY_CATEGORIES
+                    finding for finding in all_findings if finding.category in SECURITY_CATEGORIES
                 ]
                 security_score = compute_security_score(security_findings)
+                trust_score = compute_trust_score(quality_score, security_score)
+                certification_level = classify_certification(trust_score, all_findings)
 
         except Exception as exc:  # noqa: BLE001 - only a catastrophic failure (e.g. clone) lands
             all_findings.append(_tool_error_finding(assessment.id, "assessment", exc))
@@ -278,6 +280,8 @@ class AssessmentService:
             status=AssessmentStatus.COMPLETED,
             quality_score=quality_score,
             security_score=security_score,
+            trust_score=trust_score,
+            certification_level=certification_level,
         )
         assert updated is not None
         return updated

@@ -1,6 +1,6 @@
 from pydantic import BaseModel, ConfigDict
 
-from app.domain.assessment import AssessmentStatus
+from app.domain.assessment import AssessmentStatus, CertificationLevel
 from app.domain.finding import Severity
 
 
@@ -18,6 +18,7 @@ class AssessmentRead(BaseModel):
     quality_score: int | None
     security_score: int | None
     trust_score: int | None
+    certification_level: CertificationLevel | None
 
 
 class FindingRead(BaseModel):

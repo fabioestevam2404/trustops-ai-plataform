@@ -48,9 +48,41 @@ def _isolate_evidence_store(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> 
     monkeypatch.setattr(settings, "evidence_store_path", str(tmp_path / "evidence"))
 
 
+def _commit_repo(repo: Path) -> None:
+    subprocess.run(["git", "init", "--quiet", "--initial-branch=main"], cwd=repo, check=True)
+    subprocess.run(["git", "add", "."], cwd=repo, check=True)
+    subprocess.run(
+        [
+            "git",
+            "-c",
+            "user.email=test@trustops.local",
+            "-c",
+            "user.name=trustops-test",
+            "commit",
+            "--quiet",
+            "-m",
+            "initial commit",
+        ],
+        cwd=repo,
+        check=True,
+    )
+
+
+def _write_clean_files(repo: Path) -> None:
+    (repo / "app.py").write_text(
+        "def add(a: int, b: int) -> int:\n    return a + b\n",
+        encoding="utf-8",
+    )
+    (repo / "test_app.py").write_text(
+        "from app import add\n\n\ndef test_add() -> None:\n    assert add(1, 2) == 3\n",
+        encoding="utf-8",
+    )
+
+
 @pytest.fixture()
 def demo_repo_path(tmp_path: Path) -> Path:
-    """Minimal local git repo used as a scan target — no network needed for tests."""
+    """Local git repo with a real quality issue (unused import) and a synthetic
+    secret/vulnerability pattern — no network needed for tests."""
     repo = tmp_path / "demo-repo"
     repo.mkdir()
     (repo / "app.py").write_text(
@@ -72,23 +104,16 @@ def demo_repo_path(tmp_path: Path) -> Path:
         "    return eval(expr)\n",
         encoding="utf-8",
     )
-    subprocess.run(
-        ["git", "init", "--quiet", "--initial-branch=main"], cwd=repo, check=True
-    )
-    subprocess.run(["git", "add", "."], cwd=repo, check=True)
-    subprocess.run(
-        [
-            "git",
-            "-c",
-            "user.email=test@trustops.local",
-            "-c",
-            "user.name=trustops-test",
-            "commit",
-            "--quiet",
-            "-m",
-            "initial commit",
-        ],
-        cwd=repo,
-        check=True,
-    )
+    _commit_repo(repo)
+    return repo
+
+
+@pytest.fixture()
+def clean_repo_path(tmp_path: Path) -> Path:
+    """Local git repo with no quality or security issues — used to exercise the
+    non-blocked certification path (demo_repo_path always yields BLOCKED)."""
+    repo = tmp_path / "clean-repo"
+    repo.mkdir()
+    _write_clean_files(repo)
+    _commit_repo(repo)
     return repo

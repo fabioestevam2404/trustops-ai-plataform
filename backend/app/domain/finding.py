@@ -11,6 +11,9 @@ class Severity(str, Enum):
     INFO = "INFO"
 
 
+SECURITY_CATEGORIES = {"security", "secrets", "misconfig"}
+
+
 @dataclass
 class Finding:
     id: str

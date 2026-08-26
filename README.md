@@ -44,7 +44,7 @@ DELETE /projects/{id}
 
 POST   /projects/{project_id}/assessments        cria e roda a avaliação completa (síncrono)
 GET    /projects/{project_id}/assessments        lista avaliações do projeto
-GET    /assessments/{id}                         status, quality_score, security_score
+GET    /assessments/{id}                         status, quality/security/trust_score, certification_level
 GET    /assessments/{id}/findings                findings normalizados
 GET    /assessments/{id}/reports/{tool}           relatório bruto (pytest | coverage | ruff |
                                                    bandit | semgrep | gitleaks | trivy)
@@ -57,7 +57,7 @@ Monorepo — ver [seção 8 da especificação](trustops-ai-platform.md#8-estrut
 ```
 backend/          API (FastAPI, Clean Architecture)
 frontend/         Dashboard (React) — Sprint 5
-trust-engine/     Motor de scoring e certificação — Sprint 4
+trust-engine/     Motor de scoring e certificação (código real em backend/app/application)
 integrations/     Adaptadores de ferramentas (Semgrep, Trivy, Gitleaks, pytest...)
 infrastructure/   Docker, Terraform, Kubernetes
 evidence/         Convenções do Evidence Store (relatórios brutos rastreáveis)
@@ -66,4 +66,4 @@ docs/             Arquitetura, ADRs, API, Trust Framework
 
 ## Status
 
-Sprint 3 — Security Assessment (scanners reais de Bandit/Semgrep/Gitleaks/Trivy, Security Score, cada ferramenta isolada por falha). Veja o backlog completo na [seção 9 da especificação](trustops-ai-platform.md#9-backlog-executivo-de-sprints).
+Sprint 4 — Trust Engine (trust_score consolidado, regra de bloqueio por vulnerabilidade crítica, níveis de certificação FOUNDATION/TRUSTED/HIGH_TRUST/ENTERPRISE_TRUST/BLOCKED). Veja o backlog completo na [seção 9 da especificação](trustops-ai-platform.md#9-backlog-executivo-de-sprints).

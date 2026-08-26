@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Session
 
-from app.domain.assessment import Assessment, AssessmentStatus
+from app.domain.assessment import Assessment, AssessmentStatus, CertificationLevel
 from app.infrastructure.db.models import AssessmentModel
 
 
@@ -13,6 +13,9 @@ def _to_entity(model: AssessmentModel) -> Assessment:
         quality_score=model.quality_score,
         security_score=model.security_score,
         trust_score=model.trust_score,
+        certification_level=(
+            CertificationLevel(model.certification_level) if model.certification_level else None
+        ),
     )
 
 
@@ -49,6 +52,8 @@ class SqlAlchemyAssessmentRepository:
         status: AssessmentStatus | None = None,
         quality_score: int | None = None,
         security_score: int | None = None,
+        trust_score: int | None = None,
+        certification_level: CertificationLevel | None = None,
     ) -> Assessment | None:
         model = self._db.get(AssessmentModel, assessment_id)
         if model is None:
@@ -61,6 +66,10 @@ class SqlAlchemyAssessmentRepository:
             model.quality_score = quality_score
         if security_score is not None:
             model.security_score = security_score
+        if trust_score is not None:
+            model.trust_score = trust_score
+        if certification_level is not None:
+            model.certification_level = certification_level.value
         self._db.commit()
         self._db.refresh(model)
         return _to_entity(model)

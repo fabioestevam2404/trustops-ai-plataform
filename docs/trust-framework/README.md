@@ -17,7 +17,7 @@ Lógica de scoring e certificação — especificada em detalhe nas seções [6]
 | ≥ 85 | HIGH_TRUST |
 | ≥ 95 | ENTERPRISE_TRUST |
 
-Implementação do motor: `trust-engine/` (Sprint 4).
+Implementação do motor: `backend/app/application/trust_engine.py` (Sprint 4) — a pasta `trust-engine/` na raiz é documentação (ver seu README).
 
 ## Quality Score (implementado na Sprint 2)
 
@@ -34,3 +34,19 @@ Alimentado por quatro ferramentas (`integrations/bandit`, `integrations/semgrep`
 **Limitações conhecidas do MVP**:
 - **Trivy roda sem o scanner `vuln`** (CVEs de dependências / SCA) — só `secret` e `misconfig`. Rodar `vuln` exigiria baixar e manter um banco de vulnerabilidades (dependência de rede em tempo de execução, ou imagem Docker maior se embutido no build). SCA de dependências fica para uma sprint futura.
 - **Semgrep usa um ruleset local mínimo** (`backend/app/infrastructure/scanners/semgrep_rules.yml`), não o registro completo (`--config=auto`), para manter os scans herméticos (sem rede) e os testes determinísticos.
+
+## Trust Score (implementado na Sprint 4)
+
+Consolida os dois sub-scores em `backend/app/application/trust_engine.py`:
+
+```python
+trust_score = round(TRUST_WEIGHTS["quality"] * quality_score + TRUST_WEIGHTS["security"] * security_score)
+```
+
+Pesos iguais (`TRUST_WEIGHTS = {"quality": 0.5, "security": 0.5}`) como ponto de partida do MVP — a especificação não define valores; mesmo aviso de "não calibrado" dos demais scores.
+
+A classificação segue exatamente a pseudológica da [seção 6](../../trustops-ai-platform.md#6-trust-engine--o-núcleo-do-produto): qualquer `Finding` `CRITICAL` em categoria de segurança (`security`/`secrets`/`misconfig`) força `certification_level = BLOCKED`, **independente do `trust_score`** — um `Finding` `CRITICAL` de categoria `execution` (falha de ferramenta, não vulnerabilidade real) não bloqueia. Sem bloqueio, o `trust_score` é classificado pela tabela de níveis acima.
+
+Validado manualmente: um repositório com um segredo exposto obteve `trust_score: 25` mas `certification_level: BLOCKED` (a regra de bloqueio prevaleceu sobre o score); um repositório limpo obteve `trust_score: 100` e `certification_level: ENTERPRISE_TRUST`.
+
+**Fora de escopo desta sprint**: a entidade `Certificate` completa (emissão formal, histórico, `issued_at`) — `certification_level` vive como campo do próprio `Assessment` por enquanto; a emissão de certificado de fato é a Sprint 6.

@@ -10,6 +10,14 @@ class AssessmentStatus(str, Enum):
     FAILED = "FAILED"
 
 
+class CertificationLevel(str, Enum):
+    BLOCKED = "BLOCKED"
+    FOUNDATION = "FOUNDATION"
+    TRUSTED = "TRUSTED"
+    HIGH_TRUST = "HIGH_TRUST"
+    ENTERPRISE_TRUST = "ENTERPRISE_TRUST"
+
+
 @dataclass
 class Assessment:
     id: str
@@ -19,6 +27,7 @@ class Assessment:
     quality_score: int | None
     security_score: int | None
     trust_score: int | None
+    certification_level: CertificationLevel | None
 
 
 class AssessmentNotFoundError(Exception):
@@ -42,4 +51,6 @@ class AssessmentRepository(Protocol):
         status: AssessmentStatus | None = None,
         quality_score: int | None = None,
         security_score: int | None = None,
+        trust_score: int | None = None,
+        certification_level: CertificationLevel | None = None,
     ) -> Assessment | None: ...

@@ -42,6 +42,7 @@ class AssessmentModel(Base):
     quality_score: Mapped[int | None] = mapped_column(Integer, nullable=True)
     security_score: Mapped[int | None] = mapped_column(Integer, nullable=True)
     trust_score: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    certification_level: Mapped[str | None] = mapped_column(String(20), nullable=True)
 
     project: Mapped["ProjectModel"] = relationship(back_populates="assessments")
     findings: Mapped[list["FindingModel"]] = relationship(back_populates="assessment")

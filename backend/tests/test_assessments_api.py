@@ -3,10 +3,10 @@ from pathlib import Path
 from fastapi.testclient import TestClient
 
 
-def _create_project(client: TestClient, demo_repo_path: Path) -> dict:
+def _create_project(client: TestClient, repo_path: Path) -> dict:
     response = client.post(
         "/projects",
-        json={"name": "demo", "repository_url": str(demo_repo_path)},
+        json={"name": "demo", "repository_url": str(repo_path)},
     )
     assert response.status_code == 201
     return response.json()
@@ -25,6 +25,11 @@ def test_create_assessment_completes_and_reports_findings(
     assert 0 <= assessment["quality_score"] <= 100
     assert assessment["security_score"] is not None
     assert 0 <= assessment["security_score"] <= 100
+    assert assessment["trust_score"] is not None
+    assert 0 <= assessment["trust_score"] <= 100
+    # insecure.py's fake AWS key is a CRITICAL security finding -> always BLOCKED,
+    # regardless of the trust_score value.
+    assert assessment["certification_level"] == "BLOCKED"
 
     findings = client.get(f"/assessments/{assessment['id']}/findings").json()
     tools = {finding["tool"] for finding in findings}
@@ -45,6 +50,37 @@ def test_create_assessment_completes_and_reports_findings(
     for tool in ("pytest", "coverage", "ruff", "bandit", "semgrep", "gitleaks", "trivy"):
         report = client.get(f"/assessments/{assessment['id']}/reports/{tool}")
         assert report.status_code == 200, tool
+
+
+def test_create_assessment_clean_repo_gets_real_certification(
+    client: TestClient, clean_repo_path: Path
+) -> None:
+    project = _create_project(client, clean_repo_path)
+
+    response = client.post(f"/projects/{project['id']}/assessments", json={})
+    assert response.status_code == 201
+    assessment = response.json()
+    assert assessment["status"] == "COMPLETED"
+
+    findings = client.get(f"/assessments/{assessment['id']}/findings").json()
+    # no CRITICAL security finding (e.g. Bandit's B101 "assert used" on the test file
+    # is expected and fine — it's only LOW severity, doesn't block certification)
+    assert not any(
+        f["severity"] == "CRITICAL" and f["category"] in ("security", "secrets", "misconfig")
+        for f in findings
+    )
+
+    assert assessment["certification_level"] != "BLOCKED"
+    level_by_min_score = [
+        (95, "ENTERPRISE_TRUST"),
+        (85, "HIGH_TRUST"),
+        (75, "TRUSTED"),
+        (0, "FOUNDATION"),
+    ]
+    expected_level = next(
+        level for min_score, level in level_by_min_score if assessment["trust_score"] >= min_score
+    )
+    assert assessment["certification_level"] == expected_level
 
 
 def test_create_assessment_project_not_found(client: TestClient) -> None:
