@@ -17,6 +17,7 @@ pytest-cov==6.0.0
 pytest-json-report==1.5.0
 bandit==1.8.0
 semgrep==1.97.0
+uv==0.5.13
 # semgrep -> opentelemetry-instrumentation still imports pkg_resources, removed in
 # recent setuptools releases; pin to the last version that still ships it.
 setuptools==75.6.0

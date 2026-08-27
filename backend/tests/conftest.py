@@ -165,3 +165,60 @@ def ai_repo_path(tmp_path: Path) -> Path:
 
     _commit_repo(repo)
     return repo
+
+
+@pytest.fixture()
+def uv_repo_path(tmp_path: Path) -> Path:
+    """Repo with a real (tiny, fast-installing) dependency managed by uv —
+    proves the dependency-install pipeline works end-to-end. Needs real
+    network access to PyPI: the one deliberate, documented exception to this
+    suite's hermeticity (see ADR 0005), matching what this specific scanner
+    does in production."""
+    repo = tmp_path / "uv-repo"
+    repo.mkdir()
+    (repo / "pyproject.toml").write_text(
+        '[project]\n'
+        'name = "uv-repo"\n'
+        'version = "0.1.0"\n'
+        'requires-python = ">=3.12"\n'
+        'dependencies = ["six>=1.16"]\n\n'
+        "[dependency-groups]\n"
+        'dev = ["pytest>=8.0"]\n\n'
+        "[tool.uv]\n"
+        "package = false\n",
+        encoding="utf-8",
+    )
+    (repo / "app.py").write_text(
+        "import six\n\n\ndef add(a: int, b: int) -> int:\n    return a + b\n",
+        encoding="utf-8",
+    )
+    (repo / "test_app.py").write_text(
+        "import six\n\nfrom app import add\n\n\n"
+        "def test_add() -> None:\n    assert add(1, 2) == 3\n\n\n"
+        "def test_six_is_importable() -> None:\n    assert six.PY3 is True\n",
+        encoding="utf-8",
+    )
+    subprocess.run(["uv", "lock"], cwd=repo, check=True, timeout=60)
+    _commit_repo(repo)
+    return repo
+
+
+@pytest.fixture()
+def pip_requirements_repo_path(tmp_path: Path) -> Path:
+    """Repo with a plain requirements.txt (no uv) pulling the same tiny real
+    dependency — exercises the pip fallback path. Also needs real network."""
+    repo = tmp_path / "pip-repo"
+    repo.mkdir()
+    (repo / "requirements.txt").write_text("six>=1.16\n", encoding="utf-8")
+    (repo / "app.py").write_text(
+        "import six\n\n\ndef add(a: int, b: int) -> int:\n    return a + b\n",
+        encoding="utf-8",
+    )
+    (repo / "test_app.py").write_text(
+        "import six\n\nfrom app import add\n\n\n"
+        "def test_add() -> None:\n    assert add(1, 2) == 3\n\n\n"
+        "def test_six_is_importable() -> None:\n    assert six.PY3 is True\n",
+        encoding="utf-8",
+    )
+    _commit_repo(repo)
+    return repo

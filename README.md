@@ -75,4 +75,6 @@ docs/             Arquitetura, ADRs, API, Trust Framework
 
 ## Status
 
-Sprint 8 — Production & Observability, última sprint do backlog do MVP. Logs estruturados, métricas Prometheus, Grafana e alerting rodando localmente (validados de ponta a ponta); Terraform para AWS EC2 escrito e validado (`terraform validate`), **não aplicado** — sem credenciais de nuvem neste ambiente. Veja o backlog completo na [seção 9 da especificação](trustops-ai-platform.md#9-backlog-executivo-de-sprints) e [ADR 0004](docs/adr/0004-observability-and-deployment.md).
+Sprint 8 — Production & Observability, última sprint do backlog do MVP, concluída. Logs estruturados, métricas Prometheus, Grafana e alerting rodando localmente (validados de ponta a ponta); Terraform para AWS EC2 escrito e validado (`terraform validate`), **não aplicado** — sem credenciais de nuvem neste ambiente. Veja o backlog completo na [seção 9 da especificação](trustops-ai-platform.md#9-backlog-executivo-de-sprints) e [ADR 0004](docs/adr/0004-observability-and-deployment.md).
+
+Pós-MVP: instalação de dependências do repositório-alvo (venv isolado, `uv`/`pip`) antes de rodar o scanner de qualidade — resolve a limitação em que repositórios com dependências de teste próprias ficavam presos em `quality_score: 0` por falha de coleta do pytest. Validado contra um projeto real e pesado (`torch`/`sentence-transformers`): `quality_score` de `0` para `76`. Ver [ADR 0005](docs/adr/0005-target-dependency-installation.md).

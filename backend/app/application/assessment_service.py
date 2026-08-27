@@ -1,4 +1,5 @@
 import logging
+import shutil
 import time
 import uuid
 from collections.abc import Callable
@@ -29,6 +30,8 @@ from app.infrastructure.scanners.ai_trust_runner import AiTrustResult
 from app.infrastructure.scanners.ai_trust_runner import run as run_ai_trust
 from app.infrastructure.scanners.bandit_runner import BanditResult
 from app.infrastructure.scanners.bandit_runner import run as run_bandit
+from app.infrastructure.scanners.dependency_installer import DependencyInstallResult
+from app.infrastructure.scanners.dependency_installer import install as install_dependencies
 from app.infrastructure.scanners.git_client import clone_repository
 from app.infrastructure.scanners.gitleaks_runner import GitleaksResult
 from app.infrastructure.scanners.gitleaks_runner import run as run_gitleaks
@@ -216,6 +219,39 @@ def _trivy_findings(assessment_id: str, result: TrivyResult) -> list[Finding]:
     ]
 
 
+def _dependency_install_finding(assessment_id: str, result: DependencyInstallResult) -> Finding:
+    if result.manager is None:
+        return Finding(
+            id=str(uuid.uuid4()),
+            assessment_id=assessment_id,
+            tool="dependency-install",
+            severity=Severity.INFO,
+            category="quality",
+            description="no uv.lock/requirements.txt/pyproject.toml found — not applicable",
+        )
+    if result.installed:
+        return Finding(
+            id=str(uuid.uuid4()),
+            assessment_id=assessment_id,
+            tool="dependency-install",
+            severity=Severity.INFO,
+            category="quality",
+            description=f"target dependencies installed via {result.manager}",
+        )
+    return Finding(
+        id=str(uuid.uuid4()),
+        assessment_id=assessment_id,
+        tool="dependency-install",
+        severity=Severity.MEDIUM,
+        category="quality",
+        description=(
+            f"dependency installation via {result.manager} failed or timed out — "
+            "quality scan ran without the target's own dependencies, results may "
+            "be incomplete (e.g. pytest collection errors)"
+        ),
+    )
+
+
 def _ai_trust_findings(assessment_id: str, result: AiTrustResult) -> list[Finding]:
     findings: list[Finding] = []
     for rag in result.rag_evaluations:
@@ -303,12 +339,27 @@ class AssessmentService:
                 )
                 repo_path = cloned.path
 
+                # Best-effort install of the target's own dependencies (uv.lock or
+                # requirements.txt/pyproject.toml) into an isolated venv, so pytest
+                # can actually collect tests that import the target's real deps.
+                # Never blocks the rest of the pipeline — falls back to running
+                # pytest in this platform's own environment on failure/timeout.
+                install_started_at = time.monotonic()
+                install_result = install_dependencies(repo_path)
+                SCANNER_DURATION.labels(tool="dependency-install").observe(
+                    time.monotonic() - install_started_at
+                )
+                evidence_store.save(assessment.id, "dependency-install", install_result.raw_log)
+                all_findings.append(_dependency_install_finding(assessment.id, install_result))
+                if install_result.manager is not None and not install_result.installed:
+                    SCANNER_ERRORS_TOTAL.labels(tool="dependency-install").inc()
+
                 # pytest + coverage: special-cased, needs raw numbers for the quality score
                 # (not just findings) and writes two evidence files from one run.
                 coverage_percent, pytest_passed, pytest_total = 0.0, 0, 0
                 pytest_started_at = time.monotonic()
                 try:
-                    pytest_result = run_pytest(repo_path)
+                    pytest_result = run_pytest(repo_path, install_result.python_executable)
                     evidence_store.save(assessment.id, "pytest", pytest_result.raw_report)
                     evidence_store.save(assessment.id, "coverage", pytest_result.raw_coverage)
                     all_findings += _pytest_findings(assessment.id, pytest_result)
@@ -330,6 +381,12 @@ class AssessmentService:
                     SCANNER_DURATION.labels(tool="pytest").observe(
                         time.monotonic() - pytest_started_at
                     )
+                    # The install venv lives outside repo_path on purpose (see
+                    # dependency_installer._new_venv_dir) so the security
+                    # scanners below never walk the target's third-party
+                    # packages — clean it up ourselves now that pytest is done.
+                    if install_result.venv_dir is not None:
+                        shutil.rmtree(install_result.venv_dir, ignore_errors=True)
 
                 ruff_findings, ruff_result = _run_tool(
                     assessment.id, "ruff", repo_path, run_ruff, _ruff_findings

@@ -16,7 +16,22 @@ class PytestResult:
     failed_tests: list[str]
 
 
-def run(repo_path: Path) -> PytestResult:
+def run(repo_path: Path, python_executable: Path | None = None) -> PytestResult:
+    # When the target repo's own dependencies were installed into an isolated
+    # venv (see dependency_installer.py), run pytest through that venv's
+    # Python so imports resolve against the target's real dependency tree
+    # instead of this platform's own environment. That path gets a much
+    # longer timeout: importing a real ML stack (torch/transformers/...) for
+    # the first time, or a real test suite actually exercising it, is
+    # legitimately slow — a plain scan with no target deps installed stays
+    # fast-failing at the original budget.
+    if python_executable:
+        pytest_command = [str(python_executable), "-m", "pytest"]
+        timeout = 300
+    else:
+        pytest_command = ["pytest"]
+        timeout = 90
+
     with TemporaryDirectory(prefix="trustops-pytest-out-") as tmp:
         report_path = Path(tmp) / "report.json"
         coverage_path = Path(tmp) / "coverage.json"
@@ -24,7 +39,7 @@ def run(repo_path: Path) -> PytestResult:
         # Non-zero exit (test failures) is an expected outcome, not caught here.
         subprocess.run(
             [
-                "pytest",
+                *pytest_command,
                 "--json-report",
                 f"--json-report-file={report_path}",
                 "--cov=.",
@@ -33,7 +48,7 @@ def run(repo_path: Path) -> PytestResult:
             ],
             cwd=repo_path,
             capture_output=True,
-            timeout=90,
+            timeout=timeout,
             text=True,
         )
 
