@@ -9,6 +9,8 @@ class Project:
     name: str
     repository_url: str
     created_at: datetime
+    latest_trust_score: int | None = None
+    latest_certification_level: str | None = None
 
 
 class ProjectNotFoundError(Exception):

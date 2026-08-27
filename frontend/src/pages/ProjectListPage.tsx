@@ -1,14 +1,46 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { api } from '../api/client'
+import { CertificationBadge } from '../components/CertificationBadge'
+import type { Project } from '../api/types'
+
+type SortOrder = 'default' | 'score-asc' | 'score-desc'
+
+const SORT_LABELS: Record<SortOrder, string> = {
+  default: 'Mais recentes primeiro',
+  'score-asc': 'Score: crescente',
+  'score-desc': 'Score: decrescente',
+}
+
+function sortProjects(projects: Project[], order: SortOrder): Project[] {
+  if (order === 'default') return projects
+
+  // Projetos sem avaliação (latest_trust_score null) não têm score para comparar
+  // — ficam sempre por último, independente da direção da ordenação.
+  const [withScore, withoutScore] = [
+    projects.filter((p) => p.latest_trust_score !== null),
+    projects.filter((p) => p.latest_trust_score === null),
+  ]
+  withScore.sort((a, b) => {
+    const diff = (a.latest_trust_score ?? 0) - (b.latest_trust_score ?? 0)
+    return order === 'score-asc' ? diff : -diff
+  })
+  return [...withScore, ...withoutScore]
+}
 
 export function ProjectListPage() {
   const queryClient = useQueryClient()
   const projectsQuery = useQuery({ queryKey: ['projects'], queryFn: api.listProjects })
+  const [sortOrder, setSortOrder] = useState<SortOrder>('default')
 
   const [name, setName] = useState('')
   const [repositoryUrl, setRepositoryUrl] = useState('')
+
+  const sortedProjects = useMemo(
+    () => sortProjects(projectsQuery.data ?? [], sortOrder),
+    [projectsQuery.data, sortOrder],
+  )
 
   const createProject = useMutation({
     mutationFn: () => api.createProject({ name, repository_url: repositoryUrl }),
@@ -73,8 +105,28 @@ export function ProjectListPage() {
         <p className="text-sm text-red-600">Erro ao carregar projetos.</p>
       )}
 
+      {projectsQuery.data && projectsQuery.data.length > 0 && (
+        <div className="flex items-center justify-end gap-2">
+          <label className="text-xs font-medium text-slate-600" htmlFor="sort-order">
+            Ordenar por
+          </label>
+          <select
+            id="sort-order"
+            className="rounded border border-slate-300 px-2 py-1 text-sm"
+            value={sortOrder}
+            onChange={(event) => setSortOrder(event.target.value as SortOrder)}
+          >
+            {(Object.keys(SORT_LABELS) as SortOrder[]).map((order) => (
+              <option key={order} value={order}>
+                {SORT_LABELS[order]}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+
       <ul className="divide-y divide-slate-200 rounded-lg border border-slate-200 bg-white">
-        {projectsQuery.data?.map((project) => (
+        {sortedProjects.map((project) => (
           <li key={project.id}>
             <Link
               to={`/projects/${project.id}`}
@@ -84,7 +136,15 @@ export function ProjectListPage() {
                 <p className="font-medium text-slate-900">{project.name}</p>
                 <p className="text-xs text-slate-500">{project.repository_url}</p>
               </div>
-              <span className="text-sm text-slate-400">→</span>
+              <div className="flex items-center gap-3">
+                <span className="text-sm text-slate-600">
+                  {project.latest_trust_score === null
+                    ? 'sem avaliação'
+                    : `trust: ${project.latest_trust_score}`}
+                </span>
+                <CertificationBadge level={project.latest_certification_level} />
+                <span className="text-sm text-slate-400">→</span>
+              </div>
             </Link>
           </li>
         ))}

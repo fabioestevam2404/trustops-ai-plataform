@@ -1,10 +1,20 @@
+from datetime import datetime, timedelta, timezone
+
 from fastapi.testclient import TestClient
+from sqlalchemy.orm import Session
+
+from app.infrastructure.db.models import AssessmentModel
 
 
-def _create_project(client: TestClient, name: str = "example-api") -> dict:
+def _create_project(
+    client: TestClient, name: str = "example-api", repository_url: str = ""
+) -> dict:
     response = client.post(
         "/projects",
-        json={"name": name, "repository_url": "https://github.com/org/example-api"},
+        json={
+            "name": name,
+            "repository_url": repository_url or "https://github.com/org/example-api",
+        },
     )
     assert response.status_code == 201
     return response.json()
@@ -26,6 +36,43 @@ def test_list_projects(client: TestClient) -> None:
     assert response.status_code == 200
     names = {project["name"] for project in response.json()}
     assert names == {"project-a", "project-b"}
+
+
+def test_list_projects_includes_latest_score_and_certification(
+    client: TestClient, db_session: Session
+) -> None:
+    project = _create_project(client)
+    without_assessment = _create_project(client, name="never-assessed")
+
+    now = datetime.now(timezone.utc)
+    # Inserted out of chronological order on purpose: the older, higher-scoring
+    # assessment is added last, so a bug that picks "last row seen" instead of
+    # "most recent created_at" would report the wrong one here.
+    newer = AssessmentModel(
+        project_id=project["id"],
+        version="v2",
+        status="COMPLETED",
+        trust_score=95,
+        certification_level="HIGH_TRUST",
+        created_at=now,
+    )
+    older = AssessmentModel(
+        project_id=project["id"],
+        version="v1",
+        status="COMPLETED",
+        trust_score=10,
+        certification_level="BLOCKED",
+        created_at=now - timedelta(hours=1),
+    )
+    db_session.add_all([older, newer])
+    db_session.commit()
+
+    projects_by_id = {p["id"]: p for p in client.get("/projects").json()}
+
+    assert projects_by_id[project["id"]]["latest_trust_score"] == 95
+    assert projects_by_id[project["id"]]["latest_certification_level"] == "HIGH_TRUST"
+    assert projects_by_id[without_assessment["id"]]["latest_trust_score"] is None
+    assert projects_by_id[without_assessment["id"]]["latest_certification_level"] is None
 
 
 def test_get_project(client: TestClient) -> None:

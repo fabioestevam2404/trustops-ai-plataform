@@ -1,10 +1,3 @@
-export interface Project {
-  id: string
-  name: string
-  repository_url: string
-  created_at: string
-}
-
 export type AssessmentStatus = 'PENDING' | 'RUNNING' | 'COMPLETED' | 'FAILED'
 
 export type CertificationLevel =
@@ -13,6 +6,15 @@ export type CertificationLevel =
   | 'TRUSTED'
   | 'HIGH_TRUST'
   | 'ENTERPRISE_TRUST'
+
+export interface Project {
+  id: string
+  name: string
+  repository_url: string
+  created_at: string
+  latest_trust_score: number | null
+  latest_certification_level: CertificationLevel | null
+}
 
 export interface Assessment {
   id: string
