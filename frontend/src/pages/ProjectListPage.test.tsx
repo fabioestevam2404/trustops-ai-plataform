@@ -33,6 +33,7 @@ describe('ProjectListPage', () => {
         id: 'p1',
         name: 'example-api',
         repository_url: 'https://github.com/org/example-api',
+        subdirectory: null,
         created_at: '2026-01-01T00:00:00Z',
         latest_trust_score: null,
         latest_certification_level: null,
@@ -61,6 +62,7 @@ describe('ProjectListPage', () => {
         id: 'p-low',
         name: 'low-score',
         repository_url: 'https://github.com/org/low',
+        subdirectory: null,
         created_at: '2026-01-01T00:00:00Z',
         latest_trust_score: 30,
         latest_certification_level: 'FOUNDATION',
@@ -69,6 +71,7 @@ describe('ProjectListPage', () => {
         id: 'p-high',
         name: 'high-score',
         repository_url: 'https://github.com/org/high',
+        subdirectory: null,
         created_at: '2026-01-02T00:00:00Z',
         latest_trust_score: 90,
         latest_certification_level: 'HIGH_TRUST',
@@ -77,6 +80,7 @@ describe('ProjectListPage', () => {
         id: 'p-none',
         name: 'never-assessed',
         repository_url: 'https://github.com/org/none',
+        subdirectory: null,
         created_at: '2026-01-03T00:00:00Z',
         latest_trust_score: null,
         latest_certification_level: null,
@@ -104,5 +108,59 @@ describe('ProjectListPage', () => {
     expect(ascOrder[0]).toContain('low-score')
     expect(ascOrder[1]).toContain('high-score')
     expect(ascOrder[2]).toContain('never-assessed')
+  })
+
+  it('shows the subdirectory next to the repository URL when set', async () => {
+    vi.mocked(api.listProjects).mockResolvedValue([
+      {
+        id: 'p-mono',
+        name: 'monorepo-api',
+        repository_url: 'https://github.com/org/monorepo',
+        subdirectory: 'backend',
+        created_at: '2026-01-01T00:00:00Z',
+        latest_trust_score: null,
+        latest_certification_level: null,
+      },
+    ])
+
+    renderWithProviders()
+
+    await waitFor(() => expect(screen.getByText('monorepo-api')).toBeInTheDocument())
+    expect(screen.getByText('· /backend')).toBeInTheDocument()
+  })
+
+  it('submits the subdirectory field when creating a project', async () => {
+    vi.mocked(api.listProjects).mockResolvedValue([])
+    vi.mocked(api.createProject).mockResolvedValue({
+      id: 'new',
+      name: 'new-project',
+      repository_url: 'https://github.com/org/new',
+      subdirectory: 'backend',
+      created_at: '2026-01-01T00:00:00Z',
+      latest_trust_score: null,
+      latest_certification_level: null,
+    })
+
+    renderWithProviders()
+    await waitFor(() =>
+      expect(screen.getByText('Nenhum projeto cadastrado ainda.')).toBeInTheDocument(),
+    )
+
+    fireEvent.change(screen.getByLabelText('Nome'), { target: { value: 'new-project' } })
+    fireEvent.change(screen.getByLabelText('Repositório'), {
+      target: { value: 'https://github.com/org/new' },
+    })
+    fireEvent.change(screen.getByLabelText('Subpasta (opcional)'), {
+      target: { value: 'backend' },
+    })
+    fireEvent.click(screen.getByText('Adicionar projeto'))
+
+    await waitFor(() =>
+      expect(api.createProject).toHaveBeenCalledWith({
+        name: 'new-project',
+        repository_url: 'https://github.com/org/new',
+        subdirectory: 'backend',
+      }),
+    )
   })
 })

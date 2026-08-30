@@ -97,6 +97,15 @@ def test_update_project(client: TestClient) -> None:
     assert response.json()["repository_url"] == created["repository_url"]
 
 
+def test_update_project_subdirectory(client: TestClient) -> None:
+    created = _create_project(client)
+    assert created["subdirectory"] is None
+
+    response = client.patch(f"/projects/{created['id']}", json={"subdirectory": "backend"})
+    assert response.status_code == 200
+    assert response.json()["subdirectory"] == "backend"
+
+
 def test_update_project_not_found(client: TestClient) -> None:
     response = client.patch("/projects/does-not-exist", json={"name": "x"})
     assert response.status_code == 404

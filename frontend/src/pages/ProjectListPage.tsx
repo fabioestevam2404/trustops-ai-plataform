@@ -36,6 +36,7 @@ export function ProjectListPage() {
 
   const [name, setName] = useState('')
   const [repositoryUrl, setRepositoryUrl] = useState('')
+  const [subdirectory, setSubdirectory] = useState('')
 
   const sortedProjects = useMemo(
     () => sortProjects(projectsQuery.data ?? [], sortOrder),
@@ -43,10 +44,16 @@ export function ProjectListPage() {
   )
 
   const createProject = useMutation({
-    mutationFn: () => api.createProject({ name, repository_url: repositoryUrl }),
+    mutationFn: () =>
+      api.createProject({
+        name,
+        repository_url: repositoryUrl,
+        subdirectory: subdirectory || undefined,
+      }),
     onSuccess: () => {
       setName('')
       setRepositoryUrl('')
+      setSubdirectory('')
       queryClient.invalidateQueries({ queryKey: ['projects'] })
     },
   })
@@ -89,6 +96,19 @@ export function ProjectListPage() {
             onChange={(event) => setRepositoryUrl(event.target.value)}
             placeholder="https://github.com/org/example-api"
             required
+          />
+        </div>
+        <div className="flex flex-col gap-1">
+          <label className="text-xs font-medium text-slate-600" htmlFor="project-subdirectory">
+            Subpasta (opcional)
+          </label>
+          <input
+            id="project-subdirectory"
+            className="rounded border border-slate-300 px-2 py-1 text-sm"
+            value={subdirectory}
+            onChange={(event) => setSubdirectory(event.target.value)}
+            placeholder="backend"
+            title="Para monorepos: onde rodar dependências/pytest/ruff. A segurança sempre varre o repositório inteiro."
           />
         </div>
         <button
@@ -134,7 +154,12 @@ export function ProjectListPage() {
             >
               <div>
                 <p className="font-medium text-slate-900">{project.name}</p>
-                <p className="text-xs text-slate-500">{project.repository_url}</p>
+                <p className="text-xs text-slate-500">
+                  {project.repository_url}
+                  {project.subdirectory && (
+                    <span className="ml-1 text-slate-400">· /{project.subdirectory}</span>
+                  )}
+                </p>
               </div>
               <div className="flex items-center gap-3">
                 <span className="text-sm text-slate-600">

@@ -10,6 +10,7 @@ def _to_entity(model: ProjectModel, latest_assessment: AssessmentModel | None = 
         name=model.name,
         repository_url=model.repository_url,
         created_at=model.created_at,
+        subdirectory=model.subdirectory,
         latest_trust_score=latest_assessment.trust_score if latest_assessment else None,
         latest_certification_level=(
             latest_assessment.certification_level if latest_assessment else None
@@ -21,8 +22,8 @@ class SqlAlchemyProjectRepository:
     def __init__(self, db: Session) -> None:
         self._db = db
 
-    def create(self, name: str, repository_url: str) -> Project:
-        model = ProjectModel(name=name, repository_url=repository_url)
+    def create(self, name: str, repository_url: str, subdirectory: str | None = None) -> Project:
+        model = ProjectModel(name=name, repository_url=repository_url, subdirectory=subdirectory)
         self._db.add(model)
         self._db.commit()
         self._db.refresh(model)
@@ -51,7 +52,11 @@ class SqlAlchemyProjectRepository:
         return [_to_entity(model, latest_by_project.get(model.id)) for model in models]
 
     def update(
-        self, project_id: str, name: str | None, repository_url: str | None
+        self,
+        project_id: str,
+        name: str | None,
+        repository_url: str | None,
+        subdirectory: str | None = None,
     ) -> Project | None:
         model = self._db.get(ProjectModel, project_id)
         if model is None:
@@ -60,6 +65,8 @@ class SqlAlchemyProjectRepository:
             model.name = name
         if repository_url is not None:
             model.repository_url = repository_url
+        if subdirectory is not None:
+            model.subdirectory = subdirectory
         self._db.commit()
         self._db.refresh(model)
         return _to_entity(model)

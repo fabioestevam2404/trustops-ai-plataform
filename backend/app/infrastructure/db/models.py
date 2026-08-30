@@ -26,6 +26,7 @@ class ProjectModel(Base):
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     repository_url: Mapped[str] = mapped_column(String(500), nullable=False)
+    subdirectory: Mapped[str | None] = mapped_column(String(255), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
 
     assessments: Mapped[list["AssessmentModel"]] = relationship(back_populates="project")

@@ -11,6 +11,7 @@ export interface Project {
   id: string
   name: string
   repository_url: string
+  subdirectory: string | null
   created_at: string
   latest_trust_score: number | null
   latest_certification_level: CertificationLevel | null

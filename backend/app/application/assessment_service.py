@@ -338,6 +338,15 @@ class AssessmentService:
                     assessment.id, version=resolved_version, status=AssessmentStatus.RUNNING
                 )
                 repo_path = cloned.path
+                # Monorepo support: quality scanners (dependency install, pytest,
+                # ruff) run scoped to project.subdirectory when set — a monorepo's
+                # Python service usually isn't at the repo root. Security scanners
+                # (bandit/semgrep/gitleaks/trivy) below deliberately keep using the
+                # full repo_path regardless: a secret or misconfig can live in any
+                # subpath of a monorepo, not just the one being quality-scanned.
+                quality_root = (
+                    repo_path / project.subdirectory if project.subdirectory else repo_path
+                )
 
                 # Best-effort install of the target's own dependencies (uv.lock or
                 # requirements.txt/pyproject.toml) into an isolated venv, so pytest
@@ -345,7 +354,7 @@ class AssessmentService:
                 # Never blocks the rest of the pipeline — falls back to running
                 # pytest in this platform's own environment on failure/timeout.
                 install_started_at = time.monotonic()
-                install_result = install_dependencies(repo_path)
+                install_result = install_dependencies(quality_root)
                 SCANNER_DURATION.labels(tool="dependency-install").observe(
                     time.monotonic() - install_started_at
                 )
@@ -359,7 +368,7 @@ class AssessmentService:
                 coverage_percent, pytest_passed, pytest_total = 0.0, 0, 0
                 pytest_started_at = time.monotonic()
                 try:
-                    pytest_result = run_pytest(repo_path, install_result.python_executable)
+                    pytest_result = run_pytest(quality_root, install_result.python_executable)
                     evidence_store.save(assessment.id, "pytest", pytest_result.raw_report)
                     evidence_store.save(assessment.id, "coverage", pytest_result.raw_coverage)
                     all_findings += _pytest_findings(assessment.id, pytest_result)
@@ -389,7 +398,7 @@ class AssessmentService:
                         shutil.rmtree(install_result.venv_dir, ignore_errors=True)
 
                 ruff_findings, ruff_result = _run_tool(
-                    assessment.id, "ruff", repo_path, run_ruff, _ruff_findings
+                    assessment.id, "ruff", quality_root, run_ruff, _ruff_findings
                 )
                 all_findings += ruff_findings
 

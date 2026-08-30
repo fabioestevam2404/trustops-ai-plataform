@@ -12,7 +12,7 @@ router = APIRouter(prefix="/projects", tags=["projects"])
 def create_project(
     payload: ProjectCreate, service: ProjectService = Depends(get_project_service)
 ) -> ProjectRead:
-    project = service.create(payload.name, payload.repository_url)
+    project = service.create(payload.name, payload.repository_url, payload.subdirectory)
     return ProjectRead.model_validate(project)
 
 
@@ -39,7 +39,9 @@ def update_project(
     service: ProjectService = Depends(get_project_service),
 ) -> ProjectRead:
     try:
-        project = service.update(project_id, payload.name, payload.repository_url)
+        project = service.update(
+            project_id, payload.name, payload.repository_url, payload.subdirectory
+        )
     except ProjectNotFoundError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     return ProjectRead.model_validate(project)

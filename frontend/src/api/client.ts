@@ -30,7 +30,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 export const api = {
   listProjects: () => request<Project[]>('/projects'),
   getProject: (id: string) => request<Project>(`/projects/${id}`),
-  createProject: (data: { name: string; repository_url: string }) =>
+  createProject: (data: { name: string; repository_url: string; subdirectory?: string }) =>
     request<Project>('/projects', { method: 'POST', body: JSON.stringify(data) }),
 
   listAssessments: (projectId: string) =>

@@ -222,3 +222,38 @@ def pip_requirements_repo_path(tmp_path: Path) -> Path:
     )
     _commit_repo(repo)
     return repo
+
+
+@pytest.fixture()
+def monorepo_path(tmp_path: Path) -> Path:
+    """Repo shaped like a monorepo (backend/ + something else) — exercises
+    project.subdirectory scoping. Repo root carries a synthetic secret AND a
+    ruff violation the security/quality split should treat differently:
+    gitleaks (security) must still catch the root-level secret regardless of
+    subdirectory, while ruff/pytest (quality) must NOT see the root-level
+    violation once scoped to backend/. backend/ has its own requirements.txt
+    (real, tiny dependency — needs network, see ADR 0005) and a passing test.
+    """
+    repo = tmp_path / "monorepo"
+    repo.mkdir()
+    (repo / "root_secret.py").write_text(
+        'import os\n\n'  # unused import: a ruff violation quality scanning must NOT see
+        'AWS_ACCESS_KEY_ID = "AKIAABCDEFGHIJKLMNOP"\n',
+        encoding="utf-8",
+    )
+
+    backend = repo / "backend"
+    backend.mkdir()
+    (backend / "requirements.txt").write_text("six>=1.16\n", encoding="utf-8")
+    (backend / "app.py").write_text(
+        "import six\n\n\ndef add(a: int, b: int) -> int:\n    return a + b\n",
+        encoding="utf-8",
+    )
+    (backend / "test_app.py").write_text(
+        "import six\n\nfrom app import add\n\n\n"
+        "def test_add() -> None:\n    assert add(1, 2) == 3\n\n\n"
+        "def test_six_is_importable() -> None:\n    assert six.PY3 is True\n",
+        encoding="utf-8",
+    )
+    _commit_repo(repo)
+    return repo
