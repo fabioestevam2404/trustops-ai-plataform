@@ -15,6 +15,7 @@ RUN curl -sL https://github.com/gitleaks/gitleaks/releases/download/v8.30.1/gitl
 COPY requirements/ requirements/
 RUN pip install --no-cache-dir -r requirements/dev.txt
 
+COPY pyproject.toml .
 COPY app/ app/
 COPY tests/ tests/
 COPY alembic/ alembic/

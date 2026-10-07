@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from sqlalchemy.orm import Session
 
@@ -39,7 +39,7 @@ class SqlAlchemyApiKeyRepository:
         model = self._db.get(ApiKeyModel, api_key_id)
         if model is None:
             return None
-        model.revoked_at = datetime.now(timezone.utc)
+        model.revoked_at = datetime.now(UTC)
         self._db.commit()
         self._db.refresh(model)
         return _to_entity(model)

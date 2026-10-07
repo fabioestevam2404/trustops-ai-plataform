@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
@@ -44,7 +44,7 @@ def test_list_projects_includes_latest_score_and_certification(
     project = _create_project(client)
     without_assessment = _create_project(client, name="never-assessed")
 
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     # Inserted out of chronological order on purpose: the older, higher-scoring
     # assessment is added last, so a bug that picks "last row seen" instead of
     # "most recent created_at" would report the wrong one here.
