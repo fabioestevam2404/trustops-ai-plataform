@@ -22,7 +22,7 @@ A API sobe em `http://localhost:8001` (porta 8000 remapeada para 8001 no host pa
 
 Observabilidade: Prometheus em `http://localhost:9090`, Alertmanager em `http://localhost:9093`, Grafana em `http://localhost:3000` (login `admin`/`admin`, dashboard "TrustOps Overview" já provisionado). Métricas da API em `http://localhost:8001/metrics`.
 
-Aplicar as migrations (cria as tabelas `projects`, `assessments`, `findings`, `certificates` e `api_keys`):
+Aplicar as migrations (cria as tabelas `projects`, `assessments`, `findings`, `certificates`, `api_keys` e `users`):
 
 ```bash
 docker compose exec backend alembic upgrade head
@@ -50,10 +50,28 @@ curl -H "X-API-Key: tops_..." http://localhost:8001/projects
 
 `GET /health`, `GET /metrics` e `GET /` permanecem abertos (liveness probe e scraping do Prometheus não têm como carregar uma credencial).
 
+Para humanos (dashboard), existe um segundo método de autenticação com papéis (`admin`/`viewer`, ver [ADR 0007](docs/adr/0007-rbac-user-login.md)). Criar um usuário:
+
+```bash
+docker compose exec backend python -m app.cli create-user --email "voce@exemplo.com" --role admin
+```
+
+A senha é digitada interativamente (não aparece no terminal nem no histórico do shell). Fazer login:
+
+```bash
+curl -X POST http://localhost:8001/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email": "voce@exemplo.com", "password": "..."}'
+```
+
+Retorna um `access_token` (válido por 8h) — envie em cada request no header `Authorization: Bearer <token>`. Rotas de leitura (`GET`) aceitam qualquer usuário autenticado (`admin` ou `viewer`) ou API Key; rotas de escrita (`POST`/`PATCH`/`DELETE`) exigem papel `admin` (API Key sempre tem acesso total, por representar um cliente máquina-a-máquina confiável, não uma pessoa).
+
 ### Endpoints disponíveis
 
 ```
 GET    /health
+POST   /auth/login
+
 POST   /projects
 GET    /projects
 GET    /projects/{id}
@@ -96,3 +114,5 @@ Sprint 8 — Production & Observability, última sprint do backlog do MVP, concl
 Pós-MVP: instalação de dependências do repositório-alvo (venv isolado, `uv`/`pip`) antes de rodar o scanner de qualidade — resolve a limitação em que repositórios com dependências de teste próprias ficavam presos em `quality_score: 0` por falha de coleta do pytest. Validado contra um projeto real e pesado (`torch`/`sentence-transformers`): `quality_score` de `0` para `76`. Ver [ADR 0005](docs/adr/0005-target-dependency-installation.md).
 
 Pós-MVP: autenticação via API Key em todas as rotas de negócio — a API estava completamente aberta (qualquer cliente de rede podia ler/alterar/deletar qualquer projeto ou assessment), o maior gap de segurança identificado antes de uma exposição real. Decisão e trade-offs vs. JWT/OAuth2 registrados no [ADR 0006](docs/adr/0006-api-key-authentication.md).
+
+Pós-MVP: RBAC via login de usuário (JWT) com papéis `admin`/`viewer`, ao lado da API Key — fecha a lacuna de acesso total sem distinção que a API Key sozinha deixava (qualquer portador de chave podia alterar/deletar qualquer projeto). Decisão e escopo (papéis globais, não por projeto; sem self-signup) registrados no [ADR 0007](docs/adr/0007-rbac-user-login.md).

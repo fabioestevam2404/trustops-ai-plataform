@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from prometheus_fastapi_instrumentator import Instrumentator
 
-from app.api.routers import assessments, health, projects
+from app.api.routers import assessments, auth, health, projects
 from app.core.config import settings
 from app.core.logging import configure_logging
 
@@ -16,6 +16,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 app.include_router(health.router)
+app.include_router(auth.router)
 app.include_router(projects.router)
 app.include_router(assessments.router)
 

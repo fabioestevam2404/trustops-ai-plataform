@@ -8,7 +8,7 @@ from app.api.dependencies import (
 from app.api.schemas.assessment import AssessmentCreate, AssessmentRead, FindingRead
 from app.api.schemas.certificate import CertificateRead
 from app.api.schemas.report import AssessmentReportRead
-from app.api.security import require_api_key
+from app.api.security import require_admin, require_authenticated
 from app.application.assessment_service import AssessmentService
 from app.application.certificate_service import CertificateService
 from app.application.project_service import ProjectService
@@ -18,13 +18,14 @@ from app.domain.assessment import AssessmentNotFoundError, AssessmentStatus
 from app.domain.project import ProjectNotFoundError
 from app.infrastructure import evidence_store
 
-router = APIRouter(tags=["assessments"], dependencies=[Depends(require_api_key)])
+router = APIRouter(tags=["assessments"], dependencies=[Depends(require_authenticated)])
 
 
 @router.post(
     "/projects/{project_id}/assessments",
     response_model=AssessmentRead,
     status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(require_admin)],
 )
 def create_assessment(
     project_id: str,

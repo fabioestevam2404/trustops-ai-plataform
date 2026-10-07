@@ -20,6 +20,16 @@ def _utcnow() -> datetime:
     return datetime.now(UTC)
 
 
+class UserModel(Base):
+    __tablename__ = "users"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    email: Mapped[str] = mapped_column(String(255), nullable=False, unique=True)
+    password_hash: Mapped[str] = mapped_column(String(100), nullable=False)
+    role: Mapped[str] = mapped_column(String(20), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
+
+
 class ApiKeyModel(Base):
     __tablename__ = "api_keys"
 
