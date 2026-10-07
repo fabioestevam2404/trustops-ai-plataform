@@ -22,7 +22,7 @@ A API sobe em `http://localhost:8001` (porta 8000 remapeada para 8001 no host pa
 
 Observabilidade: Prometheus em `http://localhost:9090`, Alertmanager em `http://localhost:9093`, Grafana em `http://localhost:3000` (login `admin`/`admin`, dashboard "TrustOps Overview" já provisionado). Métricas da API em `http://localhost:8001/metrics`.
 
-Aplicar as migrations (cria as tabelas `projects`, `assessments`, `findings` e `certificates`):
+Aplicar as migrations (cria as tabelas `projects`, `assessments`, `findings`, `certificates` e `api_keys`):
 
 ```bash
 docker compose exec backend alembic upgrade head
@@ -33,6 +33,22 @@ Rodar os testes do backend:
 ```bash
 docker compose exec backend pytest
 ```
+
+### Autenticação
+
+A API exige uma API Key em todas as rotas de projetos/assessments/certificados (ver [ADR 0006](docs/adr/0006-api-key-authentication.md)). Criar a primeira chave:
+
+```bash
+docker compose exec backend python -m app.cli create-api-key --name "minha-integracao"
+```
+
+O valor é mostrado **uma única vez** — guarde-o. Envie em cada request no header `X-API-Key`:
+
+```bash
+curl -H "X-API-Key: tops_..." http://localhost:8001/projects
+```
+
+`GET /health`, `GET /metrics` e `GET /` permanecem abertos (liveness probe e scraping do Prometheus não têm como carregar uma credencial).
 
 ### Endpoints disponíveis
 
@@ -78,3 +94,5 @@ docs/             Arquitetura, ADRs, API, Trust Framework
 Sprint 8 — Production & Observability, última sprint do backlog do MVP, concluída. Logs estruturados, métricas Prometheus, Grafana e alerting rodando localmente (validados de ponta a ponta); Terraform para AWS EC2 escrito e validado (`terraform validate`), **não aplicado** — sem credenciais de nuvem neste ambiente. Veja o backlog completo na [seção 9 da especificação](trustops-ai-platform.md#9-backlog-executivo-de-sprints) e [ADR 0004](docs/adr/0004-observability-and-deployment.md).
 
 Pós-MVP: instalação de dependências do repositório-alvo (venv isolado, `uv`/`pip`) antes de rodar o scanner de qualidade — resolve a limitação em que repositórios com dependências de teste próprias ficavam presos em `quality_score: 0` por falha de coleta do pytest. Validado contra um projeto real e pesado (`torch`/`sentence-transformers`): `quality_score` de `0` para `76`. Ver [ADR 0005](docs/adr/0005-target-dependency-installation.md).
+
+Pós-MVP: autenticação via API Key em todas as rotas de negócio — a API estava completamente aberta (qualquer cliente de rede podia ler/alterar/deletar qualquer projeto ou assessment), o maior gap de segurança identificado antes de uma exposição real. Decisão e trade-offs vs. JWT/OAuth2 registrados no [ADR 0006](docs/adr/0006-api-key-authentication.md).

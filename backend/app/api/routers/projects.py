@@ -2,10 +2,11 @@ from fastapi import APIRouter, Depends, HTTPException, status
 
 from app.api.dependencies import get_project_service
 from app.api.schemas.project import ProjectCreate, ProjectRead, ProjectUpdate
+from app.api.security import require_api_key
 from app.application.project_service import ProjectService
 from app.domain.project import ProjectNotFoundError
 
-router = APIRouter(prefix="/projects", tags=["projects"])
+router = APIRouter(prefix="/projects", tags=["projects"], dependencies=[Depends(require_api_key)])
 
 
 @router.post("", response_model=ProjectRead, status_code=status.HTTP_201_CREATED)
