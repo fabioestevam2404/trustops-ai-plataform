@@ -1,18 +1,20 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from app.application.report import build_assessment_report
 from app.domain.assessment import Assessment, AssessmentStatus, CertificationLevel
 from app.domain.finding import Finding, Severity
 from app.domain.project import Project
 
-_NOW = datetime.now(timezone.utc)
+_NOW = datetime.now(UTC)
 
 
 def _project() -> Project:
     return Project(id="p1", name="example-api", repository_url="https://x", created_at=_NOW)
 
 
-def _assessment(certification_level: CertificationLevel | None, trust_score: int | None) -> Assessment:
+def _assessment(
+    certification_level: CertificationLevel | None, trust_score: int | None
+) -> Assessment:
     return Assessment(
         id="a1",
         project_id="p1",

@@ -9,9 +9,11 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
 
+from app.application.api_key_service import ApiKeyService
 from app.core.config import settings
 from app.infrastructure.db.models import Base
 from app.infrastructure.db.session import get_db
+from app.infrastructure.repositories.api_key_repository import SqlAlchemyApiKeyRepository
 from app.main import app
 
 
@@ -39,7 +41,15 @@ def client(db_session: Session) -> Generator[TestClient, None, None]:
 
     app.dependency_overrides[get_db] = override_get_db
     try:
-        yield TestClient(app)
+        # Every protected route needs a valid API key — tests in this suite
+        # exercise business logic, not auth itself, so a valid key is set by
+        # default here. Auth behavior (missing/invalid/revoked key) is tested
+        # separately in test_api_key_auth.py with its own bare TestClient.
+        _, plaintext_key = ApiKeyService(SqlAlchemyApiKeyRepository(db_session)).create(
+            "test-suite"
+        )
+        test_client = TestClient(app, headers={"X-API-Key": plaintext_key})
+        yield test_client
     finally:
         app.dependency_overrides.clear()
 
