@@ -2,14 +2,21 @@ from fastapi import APIRouter, Depends, HTTPException, status
 
 from app.api.dependencies import get_project_service
 from app.api.schemas.project import ProjectCreate, ProjectRead, ProjectUpdate
-from app.api.security import require_api_key
+from app.api.security import require_admin, require_authenticated
 from app.application.project_service import ProjectService
 from app.domain.project import ProjectNotFoundError
 
-router = APIRouter(prefix="/projects", tags=["projects"], dependencies=[Depends(require_api_key)])
+router = APIRouter(
+    prefix="/projects", tags=["projects"], dependencies=[Depends(require_authenticated)]
+)
 
 
-@router.post("", response_model=ProjectRead, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "",
+    response_model=ProjectRead,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(require_admin)],
+)
 def create_project(
     payload: ProjectCreate, service: ProjectService = Depends(get_project_service)
 ) -> ProjectRead:
@@ -33,7 +40,11 @@ def get_project(
     return ProjectRead.model_validate(project)
 
 
-@router.patch("/{project_id}", response_model=ProjectRead)
+@router.patch(
+    "/{project_id}",
+    response_model=ProjectRead,
+    dependencies=[Depends(require_admin)],
+)
 def update_project(
     project_id: str,
     payload: ProjectUpdate,
@@ -48,7 +59,11 @@ def update_project(
     return ProjectRead.model_validate(project)
 
 
-@router.delete("/{project_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete(
+    "/{project_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=[Depends(require_admin)],
+)
 def delete_project(
     project_id: str, service: ProjectService = Depends(get_project_service)
 ) -> None:
