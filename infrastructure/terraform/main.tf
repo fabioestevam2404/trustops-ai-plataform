@@ -58,12 +58,15 @@ resource "aws_security_group" "trustops" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
+  # Grafana holds the default admin/admin login (see docker-compose.yml) —
+  # restricted to the same source as SSH, not the whole internet, until the
+  # password is changed via a real provisioning step.
   ingress {
     description = "Grafana"
     from_port   = 3000
     to_port     = 3000
     protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
+    cidr_blocks = [var.allowed_ssh_cidr]
   }
 
   egress {
